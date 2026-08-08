@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0A0A0F;
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.text-gold-gradient {
+  background: linear-gradient(135deg, #F5C518, #F0A500);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.number-ball {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600; font-size: 1rem;
+  transition: all 0.3s ease;
+}
+.number-ball.matched {
+  background: #F5C518; color: #0A0A0F;
+  box-shadow: 0 0 20px rgba(245,197,24,0.5);
+  transform: scale(1.1);
+}
+.number-ball.unmatched { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); }
+.number-ball.winning { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); }
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0A0A0F; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }

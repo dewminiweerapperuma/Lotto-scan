@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #E8A800;
+  --gold-light: #FFF3CC;
+  --gold-dark: #C48F00;
+  --gold-border: #FCD34D;
+  --win: #16A34A;
+  --win-light: #DCFCE7;
+  --lose: #DC2626;
+  --lose-light: #FEE2E2;
+
+  --bg-primary: #FAFAF8;
+  --bg-secondary: #F5F3EF;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #FFFDF7;
+
+  --text-primary: #1A1A1A;
+  --text-secondary: #4B5563;
+  --text-muted: #9CA3AF;
+  --text-faint: #D1D5DB;
+
+  --border-default: #E5E7EB;
+  --border-hover: #D1D5DB;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg-primary);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* Subtle premium grain overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+.font-display {
+  font-family: 'Sora', sans-serif;
+}
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Number ball Component */
+.number-ball {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.number-ball.default {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.number-ball.gold {
+  background: var(--gold-light);
+  color: var(--gold-dark);
+}
+
+.number-ball.matched {
+  background: var(--gold);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(232, 168, 0, 0.4);
+}
+
+.number-ball.unmatched {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+/* Glow/Shadow Effects */
+.glow-gold {
+  box-shadow: 0 4px 20px rgba(232, 168, 0, 0.3);
+}
+.glow-green {
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.2);
+}
+.glow-red {
+  box-shadow: 0 4px 16px rgba(220, 38, 38, 0.15);
+}
+
+/* Gold text gradient helper */
+.text-gold-gradient {
+  background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Card layout */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-default);
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+}
+.card-gold {
+  border-color: var(--gold-border);
+  background: #FFFDF7;
+  box-shadow: 0 4px 20px rgba(232, 168, 0, 0.08);
+}
+.card-green {
+  border-color: #86EFAC;
+  background: var(--win-light);
+}
+
+/* Inputs styling */
+.input-dark {
+  background: #FFFFFF;
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  color: var(--text-primary);
+  padding: 12px 16px;
+  width: 100%;
+  transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.input-dark:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(232, 168, 0, 0.15);
+}
+.input-dark::placeholder {
+  color: var(--text-muted);
+}
+
+/* Large Number Inputs */
+.number-input {
+  width: 72px;
+  height: 72px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--border-default);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.2s;
+}
+.number-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(232, 168, 0, 0.15);
+  background: var(--bg-card-hover);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-hover);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Sections */
+.section {
+  padding: 96px 0;
+}
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Skeleton loader light */
+.skeleton {
+  background: linear-gradient(90deg, #E5E7EB 25%, #F3F4F6 50%, #E5E7EB 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
