@@ -146,17 +146,15 @@ router.post('/upload-results', authenticate, authorize('admin'), upload.single('
       return res.status(400).json({ message: `A draw with number ${drawData.drawNumber} already exists.` });
     }
 
-    const draw = new Draw({
+    const draw = await Draw.create({
       ...drawData,
-      uploadedBy: req.user.id,
+      uploadedBy: req.user ? req.user.id : null,
       status: 'active'
     });
 
-    await draw.save();
-
     return res.status(201).json({
       message: 'Draw results uploaded successfully.',
-      drawId: draw._id,
+      drawId: draw.id,
       draw: draw
     });
   } catch (error) {
@@ -170,31 +168,22 @@ router.post('/upload-results', authenticate, authorize('admin'), upload.single('
 // @access  Public
 router.post('/check-ticket', async (req, res) => {
   try {
-    const { ticketNumbers, drawDate, drawNumber } = req.body;
+    const { ticketNumbers, drawNumber } = req.body;
 
     if (!ticketNumbers || !Array.isArray(ticketNumbers) || ticketNumbers.length === 0) {
       return res.status(400).json({ message: 'Please provide ticketNumbers as a non-empty array.' });
     }
 
-    let drawQuery = { status: 'active' };
+    let draw = null;
 
     // Search by draw number if provided
     if (drawNumber) {
-      drawQuery.drawNumber = drawNumber;
-    } else if (drawDate) {
-      // Find draws on that specific date or closest to it
-      const startOfDay = new Date(drawDate);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(drawDate);
-      endOfDay.setHours(23, 59, 59, 999);
-      drawQuery.drawDate = { $gte: startOfDay, $lte: endOfDay };
+      draw = await Draw.findOne({ drawNumber, status: 'active' });
     }
-
-    let draw = await Draw.findOne(drawQuery);
 
     // If search with specific criteria fails or no criteria given, default to the latest draw
     if (!draw) {
-      draw = await Draw.findOne({ status: 'active' }).sort({ drawDate: -1 });
+      draw = await Draw.findOne({ status: 'active' });
     }
 
     if (!draw) {
@@ -209,7 +198,7 @@ router.post('/check-ticket', async (req, res) => {
       prizeAmount: result.prize,
       reason: result.reason,
       draw: {
-        id: draw._id,
+        id: draw.id,
         drawName: draw.drawName,
         drawNumber: draw.drawNumber,
         drawDate: draw.drawDate,
@@ -228,7 +217,7 @@ router.post('/check-ticket', async (req, res) => {
 // @access  Public
 router.get('/latest-results', async (req, res) => {
   try {
-    const latestDraw = await Draw.findOne({ status: 'active' }).sort({ drawDate: -1 });
+    const latestDraw = await Draw.findOne({ status: 'active' });
     
     if (!latestDraw) {
       return res.status(404).json({ message: 'No active draws found.' });
@@ -246,7 +235,7 @@ router.get('/latest-results', async (req, res) => {
 // @access  Public
 router.get('/all-draws', async (req, res) => {
   try {
-    const draws = await Draw.find({ status: 'active' }).sort({ drawDate: -1 });
+    const draws = await Draw.find({ status: 'active' });
     return res.status(200).json(draws);
   } catch (error) {
     console.error('Get all draws error:', error);

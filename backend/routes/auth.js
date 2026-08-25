@@ -6,7 +6,7 @@ const User = require('../models/User');
 // Helper to generate JWT
 const generateToken = (user) => {
   return jwt.sign(
-    { id: user._id, role: user.role },
+    { id: user.id || user._id, role: user.role },
     process.env.JWT_SECRET || 'your_secret_key_here_must_be_long_and_secure',
     { expiresIn: '7d' }
   );
@@ -24,26 +24,24 @@ router.post('/register', async (req, res) => {
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({ message: 'User already exists with this email.' });
     }
 
-    // Create user (password will be hashed via pre-save hook)
-    const user = new User({
+    // Create user
+    const user = await User.create({
       email,
       password,
       role: role || 'user'
     });
-
-    await user.save();
 
     const token = generateToken(user);
 
     return res.status(201).json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         role: user.role
       }
@@ -66,13 +64,13 @@ router.post('/login', async (req, res) => {
     }
 
     // Check if user exists
-    const user = await User.findOne({ email });
+    const user = await User.findByEmail(email);
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials. User does not exist.' });
     }
 
     // Verify password
-    const isMatch = await user.comparePassword(password);
+    const isMatch = await User.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials. Password incorrect.' });
     }
@@ -82,7 +80,7 @@ router.post('/login', async (req, res) => {
     return res.status(200).json({
       token,
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         role: user.role
       }

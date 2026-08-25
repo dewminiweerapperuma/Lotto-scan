@@ -15,12 +15,14 @@ const authenticate = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_secret_key_here_must_be_long_and_secure');
     
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id);
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
     }
 
-    req.user = user;
+    // Omit sensitive password hash from req.user
+    const { password, ...userWithoutPassword } = user;
+    req.user = userWithoutPassword;
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {

@@ -1,48 +1,67 @@
-const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
+const db = require('../db/questdb');
 
-const userSchema = new mongoose.Schema({
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please fill a valid email address']
-  },
-  password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [6, 'Password must be at least 6 characters']
-  },
-  role: {
-    type: String,
-    enum: ['user', 'admin'],
-    default: 'user'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
+class User {
+  static async findByEmail(email) {
+    if (!email) return null;
+    const res = await db.query(
+      'SELECT id, email, password, role, created_at FROM users WHERE lower(email) = lower($1) LIMIT 1',
+      [email.trim()]
+    );
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      _id: row.id, // compatibility fallback
+      email: row.email,
+      password: row.password,
+      role: row.role,
+      createdAt: row.created_at
+    };
   }
-});
 
-// Pre-save hook to hash the password
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
+  static async findById(id) {
+    if (!id) return null;
+    const res = await db.query(
+      'SELECT id, email, password, role, created_at FROM users WHERE id = $1 LIMIT 1',
+      [id]
+    );
+    if (res.rows.length === 0) return null;
+    const row = res.rows[0];
+    return {
+      id: row.id,
+      _id: row.id,
+      email: row.email,
+      password: row.password,
+      role: row.role,
+      createdAt: row.created_at
+    };
   }
-  try {
+
+  static async create({ email, password, role = 'user' }) {
     const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const id = uuidv4();
+    const createdAt = new Date().toISOString();
+
+    await db.query(
+      'INSERT INTO users (id, email, password, role, created_at) VALUES ($1, $2, $3, $4, $5)',
+      [id, email.trim().toLowerCase(), hashedPassword, role, createdAt]
+    );
+
+    return {
+      id,
+      _id: id,
+      email: email.trim().toLowerCase(),
+      role,
+      createdAt
+    };
   }
-});
 
-// Method to check password compatibility
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
+  static async comparePassword(candidatePassword, hashedPassword) {
+    return await bcrypt.compare(candidatePassword, hashedPassword);
+  }
+}
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

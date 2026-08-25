@@ -1,15 +1,17 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:7.0
-    container_name: lottoscan-mongodb
+  questdb:
+    image: questdb/questdb:latest
+    container_name: lottoscan-questdb
     ports:
-      - "27017:27017"
+      - "8812:8812"
+      - "9000:9000"
+      - "9009:9009"
     volumes:
-      - mongo_data:/data/db
+      - questdb_data:/var/lib/questdb
     environment:
-      - MONGO_INITDB_DATABASE=lotto-scan
+      - QDB_TELEMETRY_ENABLED=false
     networks:
       - lotto-network
 
@@ -22,20 +24,24 @@ services:
       - "5000:5000"
     environment:
       - PORT=5000
-      - MONGODB_URI=mongodb://mongodb:27017/lotto-scan
+      - QUESTDB_HOST=questdb
+      - QUESTDB_PG_PORT=8812
+      - QUESTDB_USER=admin
+      - QUESTDB_PASSWORD=quest
+      - QUESTDB_DATABASE=qdb
       - JWT_SECRET=your_secret_key_here_must_be_long_and_secure
       - NODE_ENV=development
     volumes:
       - ./backend:/app
       - /app/node_modules
     depends_on:
-      - mongodb
+      - questdb
     networks:
       - lotto-network
 
   frontend:
     build:
-      context: ./frontend
+      context: ./lottoscan-web-frontend
       dockerfile: Dockerfile
     container_name: lottoscan-frontend
     ports:
@@ -43,7 +49,7 @@ services:
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:5000/api
     volumes:
-      - ./frontend:/app
+      - ./lottoscan-web-frontend:/app
       - /app/node_modules
       - /app/.next
     depends_on:
@@ -56,5 +62,5 @@ networks:
     driver: bridge
 
 volumes:
-  mongo_data:
+  questdb_data:
     driver: local

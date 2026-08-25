@@ -1,7 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const questdb = require('./db/questdb');
 
 const authRoutes = require('./routes/auth');
 const lotteryRoutes = require('./routes/lottery');
@@ -21,12 +21,12 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Test route
+// Health check route
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'UP', 
     timestamp: new Date(), 
-    database: mongoose.connection.readyState === 1 ? 'CONNECTED' : 'DISCONNECTED'
+    database: questdb.getStatus()
   });
 });
 
@@ -48,23 +48,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// MongoDB connection options and connection
-const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/lotto-scan';
-
-const connectDB = async () => {
-  try {
-    await mongoose.connect(mongoUri);
-    console.log('MongoDB successfully connected to:', mongoUri.split('@').pop()); // print without credentials
-    
-    // Start listening once DB connects
-    app.listen(PORT, () => {
-      console.log(`LottoScan Backend server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('MongoDB connection error:', error.message);
-    console.log('Retrying MongoDB connection in 5 seconds...');
-    setTimeout(connectDB, 5000);
-  }
+// Start QuestDB connection & server launch
+const startServer = async () => {
+  await questdb.initDB();
+  app.listen(PORT, () => {
+    console.log(`LottoScan Backend server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+  });
 };
 
-connectDB();
+startServer();
