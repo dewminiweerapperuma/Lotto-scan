@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const Draw = require('../models/Draw');
 const { authenticate, authorize } = require('../middleware/auth');
+const scraper = require('../services/scraper');
 
 // Multer configuration for memory storage (for CSV parsing)
 const upload = multer({
@@ -84,6 +85,37 @@ const checkWinningTicket = (ticketNumbers, prizeDistribution) => {
       : 'No matches found.'
   };
 };
+
+// @route   GET /api/lottery/live-prizes
+// @desc    Get current daily live winning jackpot prizes for all 16 lotteries
+// @access  Public
+router.get('/live-prizes', async (req, res) => {
+  try {
+    const prizes = await scraper.getLivePrizes();
+    return res.status(200).json({
+      success: true,
+      lastUpdated: new Date().toISOString(),
+      source: 'Live NLB/DLB Feed',
+      prizes
+    });
+  } catch (error) {
+    console.error('Get live prizes error:', error);
+    return res.status(500).json({ message: 'Server error while fetching live prizes.', error: error.message });
+  }
+});
+
+// @route   POST /api/lottery/sync-prizes
+// @desc    Trigger live re-scrape of winning prizes from NLB/DLB websites
+// @access  Public (or Admin)
+router.post('/sync-prizes', async (req, res) => {
+  try {
+    const result = await scraper.scrapeLivePrizes();
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('Sync live prizes error:', error);
+    return res.status(500).json({ message: 'Server error while syncing live prizes.', error: error.message });
+  }
+});
 
 // @route   POST /api/lottery/upload-results
 // @desc    Upload draw results (JSON or CSV file)

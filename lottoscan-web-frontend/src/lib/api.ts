@@ -28,6 +28,7 @@ apiClient.interceptors.response.use(
 );
 
 export const lottery = {
+  getLivePrizes: () => apiClient.get("/lottery/live-prizes"),
   checkTicket: (ticketNumbers: number[], drawDate?: string) =>
     apiClient.post("/lottery/check-ticket-numbers", { ticket_numbers: ticketNumbers, draw_date: drawDate }),
   getLatestResults: (limit = 10) => apiClient.get(`/lottery/latest-results?limit=${limit}`),

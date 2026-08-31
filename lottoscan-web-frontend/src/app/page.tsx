@@ -3,6 +3,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LOTTERIES, LOTTERY_EMOJIS } from "@/lib/constants";
 import TicketChecker from "@/components/sections/TicketChecker";
+import LotteryGrid from "@/components/sections/LotteryGrid";
 
 export default function HomePage() {
   return (
@@ -172,32 +173,7 @@ export default function HomePage() {
       </section>
 
       {/* All 16 Lotteries Section */}
-      <section className="section bg-white">
-        <div className="container">
-          <div className="text-center mb-16 max-w-xl mx-auto">
-            <span className="text-gold font-display font-bold text-xs uppercase tracking-widest block mb-2">SUPPORTED LOTTERIES</span>
-            <h2 className="text-3xl md:text-4xl font-display font-extrabold text-text-primary mb-3">All 16 Sri Lankan Lotteries</h2>
-            <p className="text-text-secondary font-body text-base">Complete prize structures for every NLB and DLB draw</p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 max-w-6xl mx-auto">
-            {LOTTERIES.map((lottery, i) => (
-              <Card key={i} hover padding="sm" className="space-y-4 border border-border-default hover:border-gold-border">
-                <div className="flex items-center justify-between">
-                  <span className="text-3xl">{LOTTERY_EMOJIS[lottery.name] || "🎫"}</span>
-                  <Badge variant={lottery.board === "NLB" ? "blue" : "gold"}>
-                    {lottery.board}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-text-primary font-body font-bold text-sm md:text-base leading-snug truncate">{lottery.name}</p>
-                  <p className="text-gold font-mono font-extrabold text-xs md:text-sm mt-1">{lottery.topPrize}</p>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+      <LotteryGrid />
 
       {/* Quick Ticket Checker Section */}
       <section className="section bg-brand-section">

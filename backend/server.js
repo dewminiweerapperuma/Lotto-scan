@@ -51,9 +51,34 @@ app.use((err, req, res, next) => {
 // Start QuestDB connection & server launch
 const startServer = async () => {
   await questdb.initDB();
+
   app.listen(PORT, () => {
     console.log(`LottoScan Backend server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
+
+  // Auto-scrape on startup (delayed 5s to let server settle)
+  setTimeout(async () => {
+    try {
+      const scraper = require('./services/scraper');
+      console.log('[Server] Running initial live scrape...');
+      const result = await scraper.scrapeLivePrizes();
+      console.log(`[Server] Initial scrape complete: ${result.count || 0} lotteries, NLB=${result.nlbScraped}, DLB=${result.dlbScraped}`);
+    } catch (err) {
+      console.warn('[Server] Initial scrape failed (will retry in 30min):', err.message);
+    }
+  }, 5000);
+
+  // Re-scrape every 30 minutes
+  setInterval(async () => {
+    try {
+      const scraper = require('./services/scraper');
+      console.log('[Server] Periodic scrape starting...');
+      const result = await scraper.scrapeLivePrizes();
+      console.log(`[Server] Periodic scrape done: ${result.count || 0} lotteries`);
+    } catch (err) {
+      console.warn('[Server] Periodic scrape failed:', err.message);
+    }
+  }, 30 * 60 * 1000);
 };
 
 startServer();

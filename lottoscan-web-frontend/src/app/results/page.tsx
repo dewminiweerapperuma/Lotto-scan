@@ -171,17 +171,56 @@ export default function ResultsPage() {
                       <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider mb-2.5">
                         Winning Numbers
                       </p>
-                      <div className="flex gap-2 flex-wrap">
-                        {balls.map((n: number, j: number) => (
-                          <NumberBall key={j} number={n} variant="gold" size="sm" />
-                        ))}
-                      </div>
+                      {result.lottery_name?.toLowerCase().includes("jaya sampatha") && balls.length >= 4 ? (
+                        <div className="flex flex-col gap-2 font-mono">
+                          {/* Tier 1: 2-Digit Match */}
+                          <div className="flex items-center gap-2">
+                            {balls.slice(-2).map((n: number, j: number) => (
+                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
+                                {n}
+                              </span>
+                            ))}
+                          </div>
+                          {/* Tier 2: 3-Digit Match */}
+                          <div className="flex items-center gap-2">
+                            {balls.slice(-3).map((n: number, j: number) => (
+                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
+                                {n}
+                              </span>
+                            ))}
+                          </div>
+                          {/* Tier 3: 4-Digit Match + Super Letter */}
+                          <div className="flex items-center gap-2">
+                            {balls.slice(-4).map((n: number, j: number) => (
+                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
+                                {n}
+                              </span>
+                            ))}
+                            {result.letter && (
+                              <span className="w-8 h-8 rounded-md bg-black text-white font-display font-black text-sm flex items-center justify-center shadow-md select-none border border-black">
+                                {result.letter}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2 flex-wrap items-center">
+                          {balls.map((n: number, j: number) => (
+                            <NumberBall key={j} number={n} variant="gold" size="sm" />
+                          ))}
+                          {result.letter && (
+                            <span className="w-7 h-7 rounded-full bg-gold text-white font-display font-black text-xs flex items-center justify-center shadow-sm select-none">
+                              {result.letter}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Bottom Badges */}
-                    {(result.letter || result.zodiac) && (
+                    {/* Bottom Badges (excluding letter if already shown for Jaya Sampatha) */}
+                    {(result.zodiac || (!result.lottery_name?.toLowerCase().includes("jaya sampatha") && result.letter)) && (
                       <div className="flex gap-2.5">
-                        {result.letter && <Badge variant="blue">Letter: {result.letter}</Badge>}
+                        {!result.lottery_name?.toLowerCase().includes("jaya sampatha") && result.letter && <Badge variant="blue">Letter: {result.letter}</Badge>}
                         {result.zodiac && <Badge variant="grey">Zodiac: {result.zodiac}</Badge>}
                       </div>
                     )}

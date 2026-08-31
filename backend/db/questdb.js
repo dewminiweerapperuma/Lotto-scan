@@ -47,8 +47,21 @@ const createTables = async () => {
     );
   `;
 
+  const createLivePrizesTable = `
+    CREATE TABLE IF NOT EXISTS live_prizes (
+      lottery_name VARCHAR,
+      top_prize VARCHAR,
+      board VARCHAR,
+      draw_number VARCHAR,
+      letter VARCHAR,
+      winning_numbers VARCHAR,
+      updated_at TIMESTAMP
+    );
+  `;
+
   await pool.query(createUsersTable);
   await pool.query(createDrawsTable);
+  await pool.query(createLivePrizesTable);
 };
 
 const initDB = async (retries = 5, delayMs = 3000) => {

@@ -1,27 +1,39 @@
-export const LOTTERIES = [
-  { name: "Ada Kotipathi",        topPrize: "Rs. 50,000,000",  board: "DLB" },
-  { name: "Ada Sampat",           topPrize: "Rs. 250,000",     board: "DLB" },
-  { name: "Dhana Nidhanaya",      topPrize: "Rs. 80,000,000",  board: "DLB" },
-  { name: "Govi Seth",            topPrize: "Rs. 60,000,000",  board: "DLB" },
-  { name: "Handa Han",            topPrize: "Rs. 3,000,000",   board: "DLB" },
-  { name: "Jaya Sampat",          topPrize: "Rs. 250,000",     board: "DLB" },
-  { name: "Kapruka",              topPrize: "Rs. 150,000,000", board: "NLB" },
-  { name: "Lagna Wasanawa",       topPrize: "Rs. 3,000,000",   board: "DLB" },
-  { name: "Mahajana Sampat",      topPrize: "Rs. 20,000,000",  board: "DLB" },
-  { name: "Mega Power",           topPrize: "Rs. 150,000,000", board: "NLB" },
-  { name: "NLB Jaya",             topPrize: "Rs. 500,000",     board: "NLB" },
-  { name: "Sasiri",               topPrize: "Rs. 200,000",     board: "NLB" },
-  { name: "Shanida Wasanawa",     topPrize: "Rs. 50,000,000",  board: "DLB" },
-  { name: "Suba Davasak",         topPrize: "Rs. 500,000",     board: "DLB" },
-  { name: "Super Ball",           topPrize: "Rs. 50,000,000",  board: "NLB" },
-  { name: "Supiri Dhana Sampatha",topPrize: "Rs. 20,000,000",  board: "NLB" },
+export interface LotteryInfo {
+  name: string;
+  topPrize: string;
+  board: string;
+  drawNumber?: string;
+  letter?: string;
+  winningNumbers?: number[];
+}
+
+// Static lottery metadata — results are fetched dynamically from the scraper
+export const LOTTERIES: LotteryInfo[] = [
+  // NLB (National Lotteries Board)
+  { name: "Govisetha",         topPrize: "—", board: "NLB" },
+  { name: "Mahajana Sampatha", topPrize: "—", board: "NLB" },
+  { name: "Mega Power",        topPrize: "—", board: "NLB" },
+  { name: "Dhana Nidhanaya",   topPrize: "—", board: "NLB" },
+  { name: "Handahana",         topPrize: "—", board: "NLB" },
+  { name: "Ada Sampatha",      topPrize: "—", board: "NLB" },
+  { name: "NLB Jaya",          topPrize: "—", board: "NLB" },
+  { name: "Suba Dawasak",      topPrize: "—", board: "NLB" },
+  // DLB (Development Lotteries Board)
+  { name: "Ada Kotipathi",         topPrize: "—", board: "DLB" },
+  { name: "Shanida Wasanawa",      topPrize: "—", board: "DLB" },
+  { name: "Lagna Wasanawa",        topPrize: "—", board: "DLB" },
+  { name: "Supiri Dhana Sampatha", topPrize: "—", board: "DLB" },
+  { name: "Super Ball",            topPrize: "—", board: "DLB" },
+  { name: "Kapruka",               topPrize: "—", board: "DLB" },
+  { name: "Sasiri",                topPrize: "—", board: "DLB" },
+  { name: "Jaya Sampatha",         topPrize: "—", board: "DLB" },
 ];
 
 export const LOTTERY_EMOJIS: Record<string, string> = {
-  "Ada Kotipathi": "💰", "Ada Sampat": "🌟", "Dhana Nidhanaya": "💎",
-  "Govi Seth": "🌾", "Handa Han": "🌙", "Jaya Sampat": "🎯",
-  "Kapruka": "🌴", "Lagna Wasanawa": "⭐", "Mahajana Sampat": "👑",
+  "Ada Kotipathi": "💰", "Ada Sampatha": "🌟", "Dhana Nidhanaya": "💎",
+  "Govisetha": "🌾", "Handahana": "🌙", "Jaya Sampatha": "🎯",
+  "Kapruka": "🌴", "Lagna Wasanawa": "⭐", "Mahajana Sampatha": "👑",
   "Mega Power": "⚡", "NLB Jaya": "🏆", "Sasiri": "🎊",
-  "Shanida Wasanawa": "🪐", "Suba Davasak": "☀️", "Super Ball": "⚽",
+  "Shanida Wasanawa": "🪐", "Suba Dawasak": "☀️", "Super Ball": "⚽",
   "Supiri Dhana Sampatha": "🎰",
 };
