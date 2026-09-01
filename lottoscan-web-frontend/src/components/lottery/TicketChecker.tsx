@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import NumberBall from "@/components/ui/NumberBall";
 import Badge from "@/components/ui/Badge";
+import ZodiacSelector from "@/components/ui/ZodiacSelector";
 
 export default function TicketChecker() {
   const [numbers, setNumbers] = useState<string[]>(["", "", "", "", ""]);
@@ -89,12 +90,12 @@ export default function TicketChecker() {
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-white/50 text-sm font-body">Letter (optional)</label>
-            <input type="text" value={letter} onChange={e => setLetter(e.target.value.toUpperCase().slice(0, 1))} placeholder="A"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white font-mono text-center uppercase focus:outline-none focus:border-gold/40 transition-colors"/>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <ZodiacSelector
+            value={letter}
+            onChange={setLetter}
+            label="Lagna / Letter (optional)"
+          />
           <div className="space-y-1.5">
             <label className="text-white/50 text-sm font-body">Draw Date</label>
             <input type="date" value={date} onChange={e => setDate(e.target.value)}

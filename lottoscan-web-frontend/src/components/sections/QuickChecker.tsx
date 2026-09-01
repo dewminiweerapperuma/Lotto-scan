@@ -3,6 +3,7 @@ import { useState } from "react";
 import Button from "@/components/ui/Button";
 import NumberBall from "@/components/ui/NumberBall";
 import Card from "@/components/ui/Card";
+import ZodiacSelector from "@/components/ui/ZodiacSelector";
 import { lottery as lotteryApi } from "@/lib/api";
 import { formatPrize, getToday } from "@/lib/utils";
 
@@ -67,17 +68,12 @@ export default function QuickChecker() {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div>
-                <label className="text-white/40 text-xs font-body block mb-1.5">Letter (optional)</label>
-                <input
-                  type="text"
-                  value={letter}
-                  onChange={(e) => setLetter(e.target.value.toUpperCase().slice(0, 1))}
-                  placeholder="A"
-                  className="w-full bg-dark border border-white/10 rounded-xl px-4 py-3 text-white font-body text-center text-lg focus:outline-none focus:border-gold/50 transition-all"
-                />
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+              <ZodiacSelector
+                value={letter}
+                onChange={setLetter}
+                label="Lagna / Letter (optional)"
+              />
               <div>
                 <label className="text-white/40 text-xs font-body block mb-1.5">Draw Date</label>
                 <input

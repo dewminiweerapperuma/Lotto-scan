@@ -1,8 +1,12 @@
+"use client";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import NumberBall from "@/components/ui/NumberBall";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Hero() {
+  const { t } = useLanguage();
+
   return (
     <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
       {/* Glow blobs */}
@@ -13,28 +17,27 @@ export default function Hero() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 bg-gold/5 border border-gold/20 rounded-full px-4 py-2 mb-8">
           <span>🎫</span>
-          <span className="text-gold text-sm font-body">Sri Lanka's Smartest Lottery Checker</span>
+          <span className="text-gold text-sm font-body">{t("hero_tag")}</span>
         </div>
 
         {/* Heading */}
         <h1 className="font-display font-extrabold text-5xl md:text-7xl leading-tight mb-6">
-          Check Your Lottery<br />
-          Ticket{" "}
-          <span className="text-gold-gradient">Instantly</span>
+          {t("hero_title_1")}<br />
+          <span className="text-gold-gradient">{t("hero_title_2")}</span>
         </h1>
 
         {/* Subheading */}
         <p className="text-white/50 font-body text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-          Enter your numbers and find out if you won any Sri Lankan NLB or DLB lottery in seconds. Results updated automatically at 11:15 PM every night.
+          {t("hero_subtitle")}
         </p>
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
           <Link href="/check">
-            <Button size="lg">Check My Ticket →</Button>
+            <Button size="lg">{t("checker_button")} →</Button>
           </Link>
           <Link href="/results">
-            <Button variant="secondary" size="lg">View Today's Results</Button>
+            <Button variant="secondary" size="lg">{t("grid_tag_live")}</Button>
           </Link>
         </div>
 

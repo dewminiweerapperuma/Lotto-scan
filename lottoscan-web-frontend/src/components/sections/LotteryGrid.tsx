@@ -5,8 +5,13 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { LOTTERIES, LOTTERY_EMOJIS, LotteryInfo } from "@/lib/constants";
 import { lottery as lotteryApi } from "@/lib/api";
+import ZodiacBall, { ZodiacBadge } from "@/components/ui/ZodiacBall";
+import { getZodiacInfo } from "@/lib/zodiac";
+import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function LotteryGrid() {
+  const { t, tLottery } = useLanguage();
   const [items, setItems] = useState<LotteryInfo[]>(LOTTERIES);
   const [isLive, setIsLive] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,14 +80,14 @@ export default function LotteryGrid() {
           <div className="inline-flex items-center gap-2 bg-gold-light border border-gold-border rounded-full px-4 py-1.5 mb-3">
             <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
             <span className="text-gold-dark text-xs font-display font-bold uppercase tracking-widest">
-              {isLive ? "Live Today's Results" : "Official Daily Draws"}
+              {isLive ? t("grid_tag_live") : t("grid_tag_official")}
             </span>
           </div>
           <h2 className="text-3xl md:text-4xl font-display font-extrabold text-text-primary mb-3">
-            All 16 Sri Lankan Lotteries
+            {t("grid_title")}
           </h2>
           <p className="text-text-secondary font-body text-base">
-            Today&apos;s winning jackpot prizes &amp; results from official NLB &amp; DLB feeds
+            {t("grid_subtitle")}
           </p>
         </div>
 
@@ -90,7 +95,7 @@ export default function LotteryGrid() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-border-default shadow-sm">
               <span className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-              <span className="text-text-secondary text-sm font-body">Loading live results…</span>
+              <span className="text-text-secondary text-sm font-body">{t("grid_loading")}</span>
             </div>
           </div>
         )}
@@ -113,13 +118,13 @@ export default function LotteryGrid() {
 
               {/* Row 2: Lottery Name */}
               <h3 className="text-text-primary font-display font-extrabold text-base leading-snug min-h-[1.5rem]" title={lottery.name}>
-                {lottery.name}
+                {tLottery(lottery.name)}
               </h3>
 
               {/* Row 3: Today's Winning Prize */}
               <div className="bg-brand-section border border-border-default rounded-xl px-3 py-2.5">
                 <p className="text-text-secondary text-[10px] font-body uppercase tracking-wider font-bold mb-0.5">
-                  Today&apos;s Winning Prize
+                  {t("grid_prize_label")}
                 </p>
                 <p className="text-gold font-mono font-extrabold text-base leading-tight">
                   {lottery.topPrize || "—"}
@@ -130,7 +135,7 @@ export default function LotteryGrid() {
               <div className="pt-1 border-t border-border-default">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-text-secondary text-[10px] font-body uppercase tracking-wider font-bold">
-                    Today&apos;s Results
+                    {t("grid_results_label")}
                   </span>
                   {lottery.drawNumber && (
                     <span className="text-text-muted text-[10px] font-mono">
@@ -138,48 +143,8 @@ export default function LotteryGrid() {
                     </span>
                   )}
                 </div>
-                {lottery.name.toLowerCase().includes("jaya sampatha") && lottery.winningNumbers && lottery.winningNumbers.length >= 4 ? (
-                  /* Jaya Sampatha Official Pyramid Format */
-                  <div className="flex flex-col gap-2 py-1 items-start font-mono">
-                    {/* Tier 1: 2-Digit Match */}
-                    <div className="flex items-center gap-2">
-                      {lottery.winningNumbers.slice(-2).map((num, idx) => (
-                        <span
-                          key={idx}
-                          className="w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs flex items-center justify-center border-2 border-blue-600 shadow-sm select-none"
-                        >
-                          {num}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Tier 2: 3-Digit Match */}
-                    <div className="flex items-center gap-2">
-                      {lottery.winningNumbers.slice(-3).map((num, idx) => (
-                        <span
-                          key={idx}
-                          className="w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs flex items-center justify-center border-2 border-blue-600 shadow-sm select-none"
-                        >
-                          {num}
-                        </span>
-                      ))}
-                    </div>
-                    {/* Tier 3: 4-Digit + Super Letter */}
-                    <div className="flex items-center gap-2">
-                      {lottery.winningNumbers.slice(-4).map((num, idx) => (
-                        <span
-                          key={idx}
-                          className="w-7 h-7 rounded-full bg-white text-blue-700 font-extrabold text-xs flex items-center justify-center border-2 border-blue-600 shadow-sm select-none"
-                        >
-                          {num}
-                        </span>
-                      ))}
-                      {lottery.letter && (
-                        <span className="w-7 h-7 rounded-md bg-black text-white font-display font-black text-xs flex items-center justify-center shadow-md select-none border border-black">
-                          {lottery.letter}
-                        </span>
-                      )}
-                    </div>
-                  </div>
+                {isPyramidLottery(lottery.name) && lottery.winningNumbers && lottery.winningNumbers.length >= 4 ? (
+                  <PyramidResults numbers={lottery.winningNumbers} letter={lottery.letter} />
                 ) : (
                   /* Standard Lottery Format */
                   <div className="flex flex-wrap items-center gap-1.5">
@@ -194,9 +159,7 @@ export default function LotteryGrid() {
                           </span>
                         ))}
                         {lottery.letter && (
-                          <span className="w-7 h-7 rounded-full bg-gold text-white font-display font-black text-xs flex items-center justify-center shadow-sm select-none">
-                            {lottery.letter}
-                          </span>
+                          <ZodiacBall value={lottery.letter} size="md" />
                         )}
                       </>
                     ) : (
@@ -204,6 +167,11 @@ export default function LotteryGrid() {
                         {loading ? "Loading…" : "Pending"}
                       </span>
                     )}
+                  </div>
+                )}
+                {lottery.letter && getZodiacInfo(lottery.letter) && (
+                  <div className="mt-2.5 pt-2 border-t border-border-default/40">
+                    <ZodiacBadge value={lottery.letter} />
                   </div>
                 )}
               </div>

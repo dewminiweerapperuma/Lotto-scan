@@ -5,9 +5,14 @@ import { lottery as lotteryApi } from "@/lib/api";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import NumberBall from "@/components/ui/NumberBall";
-import { LOTTERIES } from "@/lib/constants";
+import ZodiacBall, { ZodiacBadge } from "@/components/ui/ZodiacBall";
+import { getZodiacInfo } from "@/lib/zodiac";
+import { LOTTERIES, LotteryInfo } from "@/lib/constants";
+import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function ResultsPage() {
+  const { t, tLottery } = useLanguage();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [from, setFrom] = useState(new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10));
@@ -37,20 +42,31 @@ export default function ResultsPage() {
         <div className="container flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-display font-extrabold text-text-primary mb-3">
-              Lottery Results
+              {t("results_title")}
             </h1>
             <p className="text-text-secondary font-body text-base">
-              Updated automatically at 11:15 PM Sri Lanka time
+              {t("results_subtitle")}
             </p>
           </div>
-          <div className="flex items-center gap-2 self-start md:self-center bg-white border border-[#E2E8F0] px-4 py-2 rounded-full shadow-sm">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-win opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-win"></span>
-            </span>
-            <span className="text-text-secondary font-body text-xs font-semibold uppercase tracking-wider">
-              Auto-fetch active
-            </span>
+          <div className="flex flex-wrap items-center gap-3 self-start md:self-center">
+            <a
+              href="https://lklottery.com/pdf/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-display font-bold text-sm px-5 py-2.5 rounded-[12px] shadow-md shadow-red-500/20 transition-all hover:scale-105"
+            >
+              <span>📄</span>
+              <span>{t("download_official_pdf")}</span>
+            </a>
+            <div className="flex items-center gap-2 bg-white border border-[#E2E8F0] px-4 py-2.5 rounded-[12px] shadow-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-win opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-win"></span>
+              </span>
+              <span className="text-text-secondary font-body text-xs font-semibold uppercase tracking-wider">
+                Auto-fetch active
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -157,7 +173,7 @@ export default function ResultsPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-text-primary font-display font-extrabold text-lg leading-tight truncate">
-                          {result.lottery_name}
+                          {tLottery(result.lottery_name)}
                         </p>
                         <p className="text-text-secondary font-body text-xs font-semibold mt-1">
                           Draw #{result.draw_number}
@@ -171,57 +187,29 @@ export default function ResultsPage() {
                       <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider mb-2.5">
                         Winning Numbers
                       </p>
-                      {result.lottery_name?.toLowerCase().includes("jaya sampatha") && balls.length >= 4 ? (
-                        <div className="flex flex-col gap-2 font-mono">
-                          {/* Tier 1: 2-Digit Match */}
-                          <div className="flex items-center gap-2">
-                            {balls.slice(-2).map((n: number, j: number) => (
-                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
-                                {n}
-                              </span>
-                            ))}
-                          </div>
-                          {/* Tier 2: 3-Digit Match */}
-                          <div className="flex items-center gap-2">
-                            {balls.slice(-3).map((n: number, j: number) => (
-                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
-                                {n}
-                              </span>
-                            ))}
-                          </div>
-                          {/* Tier 3: 4-Digit Match + Super Letter */}
-                          <div className="flex items-center gap-2">
-                            {balls.slice(-4).map((n: number, j: number) => (
-                              <span key={j} className="w-8 h-8 rounded-full bg-white text-blue-700 font-extrabold text-sm flex items-center justify-center border-2 border-blue-600 shadow-sm select-none">
-                                {n}
-                              </span>
-                            ))}
-                            {result.letter && (
-                              <span className="w-8 h-8 rounded-md bg-black text-white font-display font-black text-sm flex items-center justify-center shadow-md select-none border border-black">
-                                {result.letter}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                      {isPyramidLottery(result.lottery_name) && balls.length >= 4 ? (
+                        <PyramidResults numbers={balls} letter={result.letter} />
                       ) : (
                         <div className="flex gap-2 flex-wrap items-center">
                           {balls.map((n: number, j: number) => (
                             <NumberBall key={j} number={n} variant="gold" size="sm" />
                           ))}
                           {result.letter && (
-                            <span className="w-7 h-7 rounded-full bg-gold text-white font-display font-black text-xs flex items-center justify-center shadow-sm select-none">
-                              {result.letter}
-                            </span>
+                            <ZodiacBall value={result.letter} size="md" />
                           )}
                         </div>
                       )}
                     </div>
 
-                    {/* Bottom Badges (excluding letter if already shown for Jaya Sampatha) */}
+                    {/* Bottom Badges */}
                     {(result.zodiac || (!result.lottery_name?.toLowerCase().includes("jaya sampatha") && result.letter)) && (
-                      <div className="flex gap-2.5">
-                        {!result.lottery_name?.toLowerCase().includes("jaya sampatha") && result.letter && <Badge variant="blue">Letter: {result.letter}</Badge>}
-                        {result.zodiac && <Badge variant="grey">Zodiac: {result.zodiac}</Badge>}
+                      <div className="flex gap-2.5 flex-wrap items-center">
+                        {result.letter && (
+                          <ZodiacBadge value={result.letter} />
+                        )}
+                        {result.zodiac && !getZodiacInfo(result.letter) && (
+                          <ZodiacBadge value={result.zodiac} />
+                        )}
                       </div>
                     )}
                   </div>

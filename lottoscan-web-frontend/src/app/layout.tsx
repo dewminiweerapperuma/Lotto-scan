@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { LanguageProvider } from "@/context/LanguageContext";
 
 export const metadata: Metadata = {
   title: "LottoScan — Sri Lanka Lottery Checker",
@@ -20,9 +21,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <Navbar />
-        <main className="pt-16">{children}</main>
-        <Footer />
+        <LanguageProvider>
+          <Navbar />
+          <main className="pt-16">{children}</main>
+          <Footer />
+        </LanguageProvider>
       </body>
     </html>
   );

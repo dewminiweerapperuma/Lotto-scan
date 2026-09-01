@@ -1,6 +1,10 @@
+"use client";
 import Link from "next/link";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function Footer() {
+  const { t } = useLanguage();
+
   return (
     <footer className="bg-[#1A1A1A] border-t border-white/10 text-white mt-20">
       <div className="container py-16">
@@ -15,7 +19,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-white/40 text-sm font-body leading-relaxed max-w-xs">
-              Check your ticket. Know instantly. Sri Lanka's smartest lottery ticket checker, supporting all NLB and DLB draws.
+              {t("footer_desc")}
             </p>
             <div className="inline-flex items-center gap-2 text-xs font-body px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60">
               <span className="w-2 h-2 rounded-full bg-win animate-pulse"></span>

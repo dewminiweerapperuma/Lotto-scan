@@ -1,5 +1,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
+const { v4: uuidv4 } = require('uuid');
 const db = require('../db/questdb');
 
 // ─── NLB lottery slugs ───
@@ -325,17 +326,33 @@ const scrapeLivePrizes = async () => {
     lastScrapedAt = new Date().toISOString();
   }
 
-  // Persist to QuestDB
+  // Persist to QuestDB (both live_prizes and draws tables)
   try {
     const now = new Date().toISOString();
     for (const item of allResults) {
+      // 1. Insert into live_prizes
       await db.query(
         'INSERT INTO live_prizes (lottery_name, top_prize, board, draw_number, letter, winning_numbers, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [item.name, item.topPrize || '', item.board || '', item.drawNumber || '', item.letter || '', JSON.stringify(item.winningNumbers || []), now]
       );
+
+      // 2. Insert into draws table for historical records and ticket checking
+      if (item.drawNumber && item.winningNumbers && item.winningNumbers.length > 0) {
+        const drawId = uuidv4();
+        const prizeDist = {
+          first: { numbers: item.winningNumbers, prize: item.topPrize || 'Jackpot' },
+          letter: item.letter || '',
+        };
+        await db.query(
+          `INSERT INTO draws (id, draw_date, draw_name, draw_number, prize_distribution, uploaded_at, uploaded_by, status)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+          [drawId, now, item.name, item.drawNumber, JSON.stringify(prizeDist), now, 'automated_scraper', 'active']
+        );
+      }
     }
+    console.log(`[Scraper] Successfully persisted ${allResults.length} draw results to QuestDB database.`);
   } catch (dbErr) {
-    // QuestDB offline — in-memory fallback
+    console.warn('[Scraper] DB persist notice:', dbErr.message);
   }
 
   return {
