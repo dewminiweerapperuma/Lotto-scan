@@ -52,6 +52,18 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   await questdb.initDB();
 
+  // Auto-seed default admin account if not exists
+  try {
+    const User = require('./models/User');
+    const existingLk = await User.findByEmail('admin@lottoscan.lk');
+    if (!existingLk) {
+      await User.create({ email: 'admin@lottoscan.lk', password: 'admin', role: 'admin' });
+      console.log('[Auth] Seeded default admin: admin@lottoscan.lk');
+    }
+  } catch (err) {
+    console.warn('[Auth] Admin seed notice:', err.message);
+  }
+
   app.listen(PORT, () => {
     console.log(`LottoScan Backend server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
   });
