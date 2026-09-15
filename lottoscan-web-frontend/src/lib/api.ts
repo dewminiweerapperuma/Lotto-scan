@@ -29,8 +29,8 @@ apiClient.interceptors.response.use(
 
 export const lottery = {
   getLivePrizes: () => apiClient.get("/lottery/live-prizes"),
-  checkTicket: (ticketNumbers: number[], drawDate?: string) =>
-    apiClient.post("/lottery/check-ticket-numbers", { ticket_numbers: ticketNumbers, draw_date: drawDate }),
+  checkTicket: (ticketNumbers: number[], drawDate?: string, lotteryName?: string, letter?: string) =>
+    apiClient.post("/lottery/check-ticket-numbers", { ticket_numbers: ticketNumbers, draw_date: drawDate, lottery_name: lotteryName || undefined, letter: letter || undefined }),
   getLatestResults: (limit = 10) => apiClient.get(`/lottery/latest-results?limit=${limit}`),
   getAllDraws: (from?: string, to?: string) => apiClient.get(`/lottery/all-draws${from ? `?from=${from}&to=${to}` : ""}`),
   uploadResults: (formData: FormData) => apiClient.post("/lottery/upload-results-pdf", formData, { headers: { "Content-Type": "multipart/form-data" } }),

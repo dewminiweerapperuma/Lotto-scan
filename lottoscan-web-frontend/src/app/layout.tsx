@@ -4,12 +4,15 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { LanguageProvider } from "@/context/LanguageContext";
 
+export const viewport = {
+  themeColor: "#0A0A0F",
+};
+
 export const metadata: Metadata = {
   title: "LottoScan — Sri Lanka Lottery Checker",
   description: "Check your Sri Lankan lottery ticket instantly. Supports all NLB and DLB lotteries. Results updated automatically at 11:15 PM daily.",
   keywords: ["lottery", "Sri Lanka", "NLB", "DLB", "lottery checker", "winning numbers"],
   manifest: "/manifest.json",
-  themeColor: "#0A0A0F",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

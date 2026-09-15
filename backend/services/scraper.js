@@ -176,6 +176,51 @@ const scrapeNLB = async () => {
 };
 
 /**
+ * Scrape full prize structures for DLB lotteries from https://www.dlb.lk/lottery/en
+ */
+let dlbPrizeStructuresMap = {};
+
+const scrapeDLBPrizeStructures = async () => {
+  try {
+    const res = await axios.get('https://www.dlb.lk/lottery/en', { headers: HTTP_HEADERS, timeout: 20000 });
+    const $ = cheerio.load(res.data);
+
+    const prizeStructures = {};
+
+    for (let i = 0; i <= 8; i++) {
+      const container = $(`#lottery${i}`);
+      if (!container.length) continue;
+
+      const rawTitle = container.find('h1, h2, h3, h4, .lottery_name, .lot_title').first().text().trim() || container.text().split('Check')[0].trim();
+      const titleKey = rawTitle.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const rows = [];
+
+      container.find('table tr').each((_, tr) => {
+        const cells = $(tr).find('td').map((_, cell) => $(cell).text().trim()).get();
+        if (cells.length >= 2) {
+          const combination = cells[0];
+          const prizeStr = cells[1];
+          const numMatch = prizeStr.replace(/,/g, '').match(/\d+(\.\d+)?/);
+          const prizeAmount = numMatch ? parseFloat(numMatch[0]) : 0;
+          rows.push({ combination, prize: prizeStr, prizeAmount });
+        }
+      });
+
+      if (rows.length > 0) {
+        prizeStructures[titleKey] = rows;
+      }
+    }
+
+    dlbPrizeStructuresMap = prizeStructures;
+    console.log(`[Scraper] Successfully scraped prize structures for ${Object.keys(prizeStructures).length} DLB lotteries.`);
+    return prizeStructures;
+  } catch (err) {
+    console.warn('[Scraper] DLB Prize Structure scrape error:', err.message);
+    return dlbPrizeStructuresMap;
+  }
+};
+
+/**
  * Scrape DLB results using Cheerio
  * DLB page structure:
  *   #lottery0 - #lottery7  → tab containers for each lottery
@@ -185,6 +230,7 @@ const scrapeNLB = async () => {
  */
 const scrapeDLB = async () => {
   const results = [];
+  const prizeStructures = await scrapeDLBPrizeStructures();
 
   try {
     const res = await axios.get('https://www.dlb.lk/result/en', { headers: HTTP_HEADERS, timeout: 20000 });
@@ -193,8 +239,12 @@ const scrapeDLB = async () => {
     for (const lottery of DLB_LOTTERIES) {
       try {
         const container = $(`#${lottery.tabId}`);
+        const lotKey = lottery.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const prizeStructure = prizeStructures[lotKey] ||
+          Object.entries(prizeStructures).find(([k]) => k.includes(lotKey) || lotKey.includes(k))?.[1] || [];
+
         if (!container.length) {
-          results.push({ name: lottery.name, board: 'DLB' });
+          results.push({ name: lottery.name, board: 'DLB', prizeStructure });
           continue;
         }
 
@@ -212,17 +262,20 @@ const scrapeDLB = async () => {
 
         // Zodiac sign (from image filename for Lagna Wasanawa, Handahana)
         if (!letter) {
-          const imgEl = container.find('ul.result_detail_result img');
+          const imgEl = container.find('.lot_main_result img, img.imgmiddle_sub, ul.result_detail_result img');
           if (imgEl.length) {
-            const src = imgEl.attr('src') || '';
-            const zodiacMap = {
-              'mesha': '♈', 'vrushabha': '♉', 'mithuna': '♊', 'kataka': '♋',
-              'simha': '♌', 'kanya': '♍', 'thula': '♎', 'vrischika': '♏',
-              'dhanu': '♐', 'makara': '♑', 'kumbha': '♒', 'meena': '♓',
-            };
-            for (const [key, symbol] of Object.entries(zodiacMap)) {
-              if (src.toLowerCase().includes(key)) { letter = symbol; break; }
-            }
+            imgEl.each((_, el) => {
+              if (letter) return;
+              const src = $(el).attr('src') || '';
+              const zodiacMap = {
+                'mesha': '♈', 'vrushabha': '♉', 'mithuna': '♊', 'kataka': '♋',
+                'simha': '♌', 'kanya': '♍', 'thula': '♎', 'vrischika': '♏',
+                'dhanu': '♐', 'makara': '♑', 'kumbha': '♒', 'meena': '♓',
+              };
+              for (const [key, symbol] of Object.entries(zodiacMap)) {
+                if (src.toLowerCase().includes(key)) { letter = symbol; break; }
+              }
+            });
           }
         }
 
@@ -242,6 +295,7 @@ const scrapeDLB = async () => {
           letter,
           winningNumbers,
           topPrize: '',
+          prizeStructure,
         });
 
         console.log(`  DLB ${lottery.name}: draw=${drawNumber || '?'}, nums=${winningNumbers.join(',') || '?'}, letter=${letter || '?'}`);
@@ -330,11 +384,13 @@ const scrapeLivePrizes = async () => {
   try {
     const now = new Date().toISOString();
     for (const item of allResults) {
-      // 1. Insert into live_prizes
-      await db.query(
-        'INSERT INTO live_prizes (lottery_name, top_prize, board, draw_number, letter, winning_numbers, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
-        [item.name, item.topPrize || '', item.board || '', item.drawNumber || '', item.letter || '', JSON.stringify(item.winningNumbers || []), now]
-      );
+      // Only insert into live_prizes if we got valid winning numbers or valid draw data
+      if (item.winningNumbers && item.winningNumbers.length > 0) {
+        await db.query(
+          'INSERT INTO live_prizes (lottery_name, top_prize, board, draw_number, letter, winning_numbers, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [item.name, item.topPrize || '', item.board || '', item.drawNumber || '', item.letter || '', JSON.stringify(item.winningNumbers || []), now]
+        );
+      }
 
       // 2. Insert into draws table for historical records and ticket checking
       if (item.drawNumber && item.winningNumbers && item.winningNumbers.length > 0) {
@@ -350,7 +406,7 @@ const scrapeLivePrizes = async () => {
         );
       }
     }
-    console.log(`[Scraper] Successfully persisted ${allResults.length} draw results to QuestDB database.`);
+    console.log(`[Scraper] Successfully persisted draw results to QuestDB database.`);
   } catch (dbErr) {
     console.warn('[Scraper] DB persist notice:', dbErr.message);
   }
@@ -371,14 +427,16 @@ const scrapeLivePrizes = async () => {
 const getLivePrizes = async () => {
   try {
     const res = await db.query(
-      'SELECT lottery_name, top_prize, board, draw_number, letter, winning_numbers, updated_at FROM live_prizes ORDER BY updated_at DESC LIMIT 16'
+      'SELECT lottery_name, top_prize, board, draw_number, letter, winning_numbers, updated_at FROM live_prizes ORDER BY updated_at DESC LIMIT 100'
     );
     if (res.rows && res.rows.length > 0) {
       const dbMap = new Map();
       res.rows.forEach(r => {
-        if (!dbMap.has(r.lottery_name)) {
-          let nums = [];
-          try { nums = JSON.parse(r.winning_numbers || '[]'); } catch { nums = []; }
+        let nums = [];
+        try { nums = JSON.parse(r.winning_numbers || '[]'); } catch { nums = []; }
+        
+        // Prioritize entries with valid winning numbers
+        if (!dbMap.has(r.lottery_name) || (dbMap.get(r.lottery_name).winningNumbers.length === 0 && nums.length > 0)) {
           dbMap.set(r.lottery_name, {
             name: r.lottery_name,
             topPrize: r.top_prize,
@@ -399,9 +457,13 @@ const getLivePrizes = async () => {
   return inMemoryPrizes;
 };
 
+const getDLBPrizeStructures = () => dlbPrizeStructuresMap;
+
 module.exports = {
   scrapeLivePrizes,
   getLivePrizes,
+  scrapeDLBPrizeStructures,
+  getDLBPrizeStructures,
   NLB_LOTTERIES,
   DLB_LOTTERIES,
 };

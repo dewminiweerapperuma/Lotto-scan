@@ -22,6 +22,7 @@ export default function TicketChecker() {
   const streamRef = useRef<MediaStream | null>(null);
   const animRef = useRef<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleNumberChange = (index: number, value: string) => {
     const v = value.replace(/\D/g, "").slice(0, 2);
@@ -33,12 +34,37 @@ export default function TicketChecker() {
     const nums = numbers.map(Number).filter(n => !isNaN(n) && n > 0);
     if (nums.length === 0) { setError("Please enter at least one number"); return; }
     setLoading(true); setError(""); setResult(null);
-    try { const res = await lotteryApi.checkTicket(nums, date); setResult(res.data); }
+    try { const res = await lotteryApi.checkTicket(nums, date, undefined, letter || undefined); setResult(res.data); }
     catch (err: any) { setError(err.response?.data?.error || "Failed to check ticket. Please try again."); }
     finally { setLoading(false); }
   };
 
   const handleClear = () => { setNumbers(["", "", "", "", ""]); setLetter(""); setResult(null); setError(""); inputRefs.current[0]?.focus(); };
+
+  const parseQRText = useCallback((qrText: string) => {
+    let nums: number[] = [];
+    let extractedLetter = "";
+    try {
+      const p = JSON.parse(qrText);
+      if (Array.isArray(p)) nums = p.map(Number);
+      else if (typeof p === "object" && p !== null) {
+        nums = Array.isArray(p.numbers) ? p.numbers.map(Number) : [];
+        if (p.letter) extractedLetter = String(p.letter);
+      }
+    } catch {
+      const parts = qrText.split(/[|/,\s-]+/);
+      for (const part of parts) {
+        const n = parseInt(part, 10);
+        if (!isNaN(n) && n > 0 && n <= 99 && String(n) === part.trim()) nums.push(n);
+        else if (/^[A-Za-z]$/.test(part.trim())) extractedLetter = part.trim().toUpperCase();
+      }
+      if (nums.length === 0) {
+        const matches = qrText.match(/\b\d{1,2}\b/g);
+        if (matches) nums = matches.map(Number).filter((n) => n > 0 && n <= 99);
+      }
+    }
+    return { nums: nums.filter((n) => !isNaN(n) && n > 0).slice(0, 5), letter: extractedLetter };
+  }, []);
 
   const scanFrame = useCallback(() => {
     const video = videoRef.current; const canvas = canvasRef.current;
@@ -49,29 +75,136 @@ export default function TicketChecker() {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const qr = jsQR(imageData.data, imageData.width, imageData.height);
     if (qr?.data) {
-      stopScanner();
-      try {
-        let nums: number[] = [];
-        try { const p = JSON.parse(qr.data); nums = Array.isArray(p) ? p.map(Number) : p.numbers?.map(Number) || []; }
-        catch { nums = qr.data.split(/[,\s]+/).map(Number).filter(n => !isNaN(n) && n > 0); }
-        if (nums.length > 0) setNumbers([...nums.slice(0, 5), ...Array(5).fill(0)].slice(0, 5).map(String));
-      } catch {}
+      const { nums, letter: parsedLetter } = parseQRText(qr.data);
+      if (nums.length > 0) {
+        setNumbers([...nums.slice(0, 5), ...Array(5).fill(0)].slice(0, 5).map(String));
+        if (parsedLetter) setLetter(parsedLetter);
+        stopScanner();
+      } else {
+        animRef.current = requestAnimationFrame(scanFrame);
+      }
       return;
     }
     animRef.current = requestAnimationFrame(scanFrame);
-  }, []);
+  }, [parseQRText]);
 
   const startScanner = async () => {
     setShowScanner(true);
+    setError("");
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
       streamRef.current = stream;
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); scanFrame(); }
-    } catch { setError("Camera access denied. Enter numbers manually."); setShowScanner(false); }
+    } catch { setError("Camera access denied or unavailable. Upload an image or enter numbers manually."); setShowScanner(false); }
   };
 
   const stopScanner = () => { cancelAnimationFrame(animRef.current); streamRef.current?.getTracks().forEach(t => t.stop()); setShowScanner(false); };
   useEffect(() => () => { cancelAnimationFrame(animRef.current); streamRef.current?.getTracks().forEach(t => t.stop()); }, []);
+
+  const processAndScanQR = useCallback((img: HTMLImageElement) => {
+    let width = img.width;
+    let height = img.height;
+    let scale = 1;
+    if (width < 500 || height < 500) {
+      scale = Math.max(500 / width, 500 / height);
+    } else if (width > 1200 || height > 1200) {
+      scale = Math.min(1200 / width, 1200 / height);
+    }
+    const scaledW = Math.round(width * scale);
+    const scaledH = Math.round(height * scale);
+    const marginX = Math.max(30, Math.round(scaledW * 0.2));
+    const marginY = Math.max(30, Math.round(scaledH * 0.2));
+    const canvasW = scaledW + marginX * 2;
+    const canvasH = scaledH + marginY * 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    ctx.drawImage(img, marginX, marginY, scaledW, scaledH);
+
+    const imageData = ctx.getImageData(0, 0, canvasW, canvasH);
+    try {
+      const qr = jsQR(imageData.data, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qr?.data) return qr;
+    } catch {}
+
+    const data = imageData.data;
+    let totalLum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      totalLum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    }
+    const avgThreshold = totalLum / (data.length / 4);
+
+    const binarizedData = new Uint8ClampedArray(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      const val = lum > avgThreshold * 0.93 ? 255 : 0;
+      binarizedData[i] = val;
+      binarizedData[i + 1] = val;
+      binarizedData[i + 2] = val;
+      binarizedData[i + 3] = 255;
+    }
+
+    try {
+      const qrBin = jsQR(binarizedData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qrBin?.data) return qrBin;
+    } catch {}
+
+    const contrastData = new Uint8ClampedArray(data.length);
+    const factor = 1.6;
+    for (let i = 0; i < data.length; i += 4) {
+      for (let c = 0; c < 3; c++) {
+        contrastData[i + c] = Math.min(255, Math.max(0, Math.round((data[i + c] - 128) * factor + 128)));
+      }
+      contrastData[i + 3] = 255;
+    }
+
+    try {
+      const qrContrast = jsQR(contrastData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qrContrast?.data) return qrContrast;
+    } catch {}
+
+    return null;
+  }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError("");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const qr = processAndScanQR(img);
+
+        if (qr?.data) {
+          const { nums, letter: parsedLetter } = parseQRText(qr.data);
+          if (nums.length > 0) {
+            setNumbers([...nums.slice(0, 5), ...Array(5).fill(0)].slice(0, 5).map(String));
+            if (parsedLetter) setLetter(parsedLetter);
+            setError("");
+          } else {
+            setError(`QR code read ("${qr.data.slice(0, 30)}..."), but could not extract valid ticket numbers.`);
+          }
+        } else {
+          setError("No QR code detected in the uploaded image. Please ensure the QR code is clear and uncropped.");
+        }
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -119,11 +252,27 @@ export default function TicketChecker() {
           <span className="text-white/30 text-xs font-body">OR</span>
           <div className="flex-1 h-px bg-white/[0.06]"/>
         </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          className="hidden"
+        />
+
         {!showScanner ? (
-          <div className="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center space-y-3">
+          <div className="border-2 border-dashed border-white/10 rounded-2xl p-6 text-center space-y-4">
             <div className="text-4xl">📷</div>
-            <p className="text-white/40 font-body text-sm">Scan the QR code on your ticket</p>
-            <Button onClick={startScanner} variant="secondary" size="sm">Activate Camera</Button>
+            <p className="text-white/60 font-body text-sm font-semibold">Scan QR Code or Upload Image</p>
+            <p className="text-white/40 text-xs font-body">Scan your ticket using camera or upload a saved photo</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-1">
+              <Button onClick={startScanner} variant="secondary" size="sm" className="flex items-center justify-center gap-2">
+                <span>📷</span> Open Camera
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="secondary" size="sm" className="flex items-center justify-center gap-2">
+                <span>📁</span> Upload Image
+              </Button>
+            </div>
           </div>
         ) : (
           <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">

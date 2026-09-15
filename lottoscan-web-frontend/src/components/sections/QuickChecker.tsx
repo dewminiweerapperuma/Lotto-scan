@@ -1,13 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/components/ui/Button";
 import NumberBall from "@/components/ui/NumberBall";
 import Card from "@/components/ui/Card";
 import ZodiacSelector from "@/components/ui/ZodiacSelector";
+import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
 import { lottery as lotteryApi } from "@/lib/api";
 import { formatPrize, getToday } from "@/lib/utils";
+import { LOTTERIES } from "@/lib/constants";
+import { getLotteryConfig } from "@/lib/lotteryConfig";
 
 export default function QuickChecker() {
+  const [lotteryName, setLotteryName] = useState("");
   const [numbers, setNumbers] = useState<string[]>(["", "", "", "", ""]);
   const [letter, setLetter] = useState("");
   const [date, setDate] = useState(getToday());
@@ -15,23 +19,68 @@ export default function QuickChecker() {
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState("");
 
+  const config = getLotteryConfig(lotteryName);
+
+  useEffect(() => {
+    setNumbers((prev) => {
+      const targetLength = config.digitCount;
+      if (prev.length === targetLength) return prev;
+      if (prev.length < targetLength) {
+        return [...prev, ...Array(targetLength - prev.length).fill("")];
+      }
+      return prev.slice(0, targetLength);
+    });
+  }, [lotteryName, config.digitCount]);
+
   const handleNumber = (i: number, val: string) => {
-    const cleaned = val.replace(/\D/g, "").slice(0, 2);
+    const cleaned = val.replace(/\D/g, "");
+
+    if (i === 0 && cleaned.length === 4 && numbers.slice(1).every((n) => !n)) {
+      const digits = cleaned.split("");
+      const next = [...numbers];
+      digits.forEach((d, idx) => {
+        if (idx < 5) next[idx] = d;
+      });
+      setNumbers(next);
+      const lastInput = document.getElementById(`quick-num-3`);
+      if (lastInput) (lastInput as HTMLInputElement).focus();
+      return;
+    }
+
+    const v = cleaned.slice(0, 4);
     const next = [...numbers];
-    next[i] = cleaned;
+    next[i] = v;
     setNumbers(next);
-    if (cleaned.length === 2 && i < 4) {
-      const nextInput = document.getElementById(`num-${i + 1}`);
+    if (v.length === 2 && i < 4) {
+      const nextInput = document.getElementById(`quick-num-${i + 1}`);
       if (nextInput) (nextInput as HTMLInputElement).focus();
     }
   };
 
   const handleCheck = async () => {
-    const parsed = numbers.map(Number).filter((n) => n > 0);
-    if (parsed.length === 0) { setError("Enter at least one number"); return; }
+    const parsedNums: number[] = [];
+
+    numbers.forEach((val) => {
+      if (!val) return;
+      const isPyramidLot = lotteryName && (
+        lotteryName.toLowerCase().includes("ada sampatha") ||
+        lotteryName.toLowerCase().includes("jaya sampatha") ||
+        lotteryName.toLowerCase().includes("nlb jaya")
+      );
+      if (val.length === 4 && isPyramidLot) {
+        val.split("").forEach((d) => parsedNums.push(Number(d)));
+      } else {
+        const num = Number(val);
+        if (!isNaN(num)) parsedNums.push(num);
+      }
+    });
+
+    const parsed = parsedNums.filter((n) => !isNaN(n) && n >= 0);
+
+    if (parsed.length === 0) { setError("Enter your ticket numbers"); return; }
     setLoading(true); setError(""); setResult(null);
     try {
-      const res = await lotteryApi.checkTicket(parsed, date);
+      const res = await lotteryApi.checkTicket(parsed, date, lotteryName || undefined, letter || undefined);
       setResult(res.data);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to check. Please try again.");
@@ -50,20 +99,43 @@ export default function QuickChecker() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
           {/* Input */}
           <Card padding="lg">
-            <h3 className="font-display font-semibold text-lg mb-6">Your Ticket Numbers</h3>
+            <h3 className="font-display font-semibold text-lg mb-4">Your Ticket Numbers</h3>
 
-            <div className="flex gap-3 mb-6">
-              {numbers.map((n, i) => (
+            {/* Lottery Selector */}
+            <div className="mb-5">
+              <label className="text-white/40 text-xs font-body block mb-1.5 font-medium">Select Lottery (optional)</label>
+              <select
+                value={lotteryName}
+                onChange={(e) => setLotteryName(e.target.value)}
+                className="w-full bg-dark border border-white/10 rounded-xl px-4 py-3 text-white font-body focus:outline-none focus:border-gold/50 transition-all"
+              >
+                <option value="">Auto-detect Lottery</option>
+                {LOTTERIES.map((l) => (
+                  <option key={l.name} value={l.name}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-2.5 mb-6">
+              {[0, 1, 2, 3, 4].map((i) => (
                 <input
                   key={i}
-                  id={`num-${i}`}
+                  id={`quick-num-${i}`}
                   type="text"
                   inputMode="numeric"
-                  value={n}
+                  value={numbers[i] || ""}
                   onChange={(e) => handleNumber(i, e.target.value)}
-                  placeholder="00"
-                  maxLength={2}
-                  className="w-full aspect-square text-center font-mono font-bold text-2xl bg-dark border border-white/10 rounded-2xl text-white focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20 transition-all"
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !numbers[i] && i > 0) {
+                      const prevInput = document.getElementById(`quick-num-${i - 1}`);
+                      if (prevInput) (prevInput as HTMLInputElement).focus();
+                    }
+                  }}
+                  placeholder="0"
+                  maxLength={4}
+                  className="w-full aspect-square text-center font-mono font-bold text-lg sm:text-xl bg-dark border border-white/10 rounded-2xl text-white focus:outline-none focus:border-gold/50 focus:ring-2 focus:ring-gold/20 transition-all"
                 />
               ))}
             </div>

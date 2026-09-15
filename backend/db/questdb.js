@@ -17,6 +17,10 @@ const pool = new Pool({
   connectionTimeoutMillis: 5000,
 });
 
+pool.on('error', (err) => {
+  console.warn('[QuestDB Pool Notice] Idle client error:', err.message);
+});
+
 let isConnected = false;
 
 const query = async (text, params = []) => {

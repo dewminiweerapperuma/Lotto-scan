@@ -8,6 +8,10 @@ import NumberBall from "@/components/ui/NumberBall";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import ZodiacSelector from "@/components/ui/ZodiacSelector";
+import ZodiacBall, { ZodiacBadge } from "@/components/ui/ZodiacBall";
+import { getZodiacInfo } from "@/lib/zodiac";
+import { getLotteryConfig } from "@/lib/lotteryConfig";
+import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
 
 export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) {
   const [numbers, setNumbers] = useState(["", "", "", "", ""]);
@@ -31,18 +35,37 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     setShowCamera(false);
   }, []);
 
-  const startCamera = useCallback(async () => {
+  const parseQRText = useCallback((qrText: string) => {
+    let nums: number[] = [];
+    let extractedLetter = "";
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        scanFrame();
+      const p = JSON.parse(qrText);
+      if (Array.isArray(p)) {
+        nums = p.map(Number);
+      } else if (typeof p === "object" && p !== null) {
+        nums = Array.isArray(p.numbers) ? p.numbers.map(Number) : [];
+        if (p.letter) extractedLetter = String(p.letter);
       }
     } catch {
-      setError("Camera access denied. Please enter numbers manually.");
+      const parts = qrText.split(/[|/,\s-]+/);
+      for (const part of parts) {
+        const n = parseInt(part, 10);
+        if (!isNaN(n) && n > 0 && n <= 99 && String(n) === part.trim()) {
+          nums.push(n);
+        } else if (/^[A-Za-z]$/.test(part.trim())) {
+          extractedLetter = part.trim().toUpperCase();
+        }
+      }
+      if (nums.length === 0) {
+        const matches = qrText.match(/\b\d{1,2}\b/g);
+        if (matches) {
+          nums = matches.map(Number).filter((n) => n > 0 && n <= 99);
+        }
+      }
     }
+
+    return { nums: nums.filter((n) => !isNaN(n) && n > 0).slice(0, 5), letter: extractedLetter };
   }, []);
 
   const scanFrame = useCallback(() => {
@@ -60,51 +83,116 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const qr = jsQR(imageData.data, imageData.width, imageData.height);
     if (qr?.data) {
-      try {
-        let nums: number[] = [];
-        try {
-          const p = JSON.parse(qr.data);
-          nums = Array.isArray(p) ? p.map(Number) : p.numbers?.map(Number) || [];
-        } catch {
-          nums = qr.data
-            .split(/[,\s]+/)
-            .map(Number)
-            .filter((n) => !isNaN(n) && n > 0);
-        }
-        if (nums.length > 0) {
-          setNumbers(nums.slice(0, 5).map(String).concat(["", "", "", "", ""]).slice(0, 5));
-          stopCamera();
-        }
-      } catch {}
+      const { nums, letter: parsedLetter } = parseQRText(qr.data);
+      if (nums.length > 0) {
+        setNumbers(nums.map(String).concat(["", "", "", "", ""]).slice(0, 5));
+        if (parsedLetter) setLetter(parsedLetter);
+        stopCamera();
+      } else {
+        animRef.current = requestAnimationFrame(scanFrame);
+      }
     } else {
       animRef.current = requestAnimationFrame(scanFrame);
     }
-  }, [stopCamera]);
+  }, [stopCamera, parseQRText]);
+
+  const startCamera = useCallback(async () => {
+    setError("");
+    try {
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        scanFrame();
+      }
+    } catch (err: any) {
+      console.warn("Camera error:", err);
+      setError("Camera access denied or unavailable. Please upload a ticket photo or enter numbers manually.");
+      setShowCamera(false);
+    }
+  }, [scanFrame]);
 
   useEffect(() => {
     if (showCamera) startCamera();
     return () => stopCamera();
   }, [showCamera, startCamera, stopCamera]);
 
+  const config = getLotteryConfig(lotteryName);
+
+  // Reset or adjust numbers array length when lottery type changes
+  useEffect(() => {
+    setNumbers((prev) => {
+      const targetLength = config.digitCount;
+      if (prev.length === targetLength) return prev;
+      if (prev.length < targetLength) {
+        return [...prev, ...Array(targetLength - prev.length).fill("")];
+      }
+      return prev.slice(0, targetLength);
+    });
+  }, [lotteryName, config.digitCount]);
+
   const handleNumberChange = (index: number, value: string) => {
-    const v = value.replace(/\D/g, "").slice(-2);
+    const cleaned = value.replace(/\D/g, "");
+    const maxLen = config.maxDigitsPerBox;
+    const boxCount = config.digitCount;
+
+    // If user pasted a long string in the first box and other boxes are empty,
+    // distribute across boxes intelligently
+    if (index === 0 && cleaned.length > maxLen && numbers.slice(1).every((n) => !n)) {
+      const newNums = [...numbers];
+      let offset = 0;
+      for (let b = 0; b < boxCount && offset < cleaned.length; b++) {
+        newNums[b] = cleaned.slice(offset, offset + maxLen);
+        offset += maxLen;
+      }
+      setNumbers(newNums);
+      const lastFilledBox = Math.min(Math.ceil(cleaned.length / maxLen), boxCount) - 1;
+      inputRefs.current[lastFilledBox]?.focus();
+      return;
+    }
+
+    const v = cleaned.slice(0, maxLen);
     const newNums = [...numbers];
     newNums[index] = v;
     setNumbers(newNums);
-    if (v.length === 2 && index < 4) inputRefs.current[index + 1]?.focus();
+
+    // Auto-advance to next box when current box is full
+    if (v.length === maxLen && index < boxCount - 1) {
+      inputRefs.current[index + 1]?.focus();
+    }
   };
 
   const handleCheck = async () => {
-    const nums = numbers.map(Number).filter((n) => n > 0);
+    const parsedNums: number[] = [];
+
+    numbers.forEach((val) => {
+      if (!val) return;
+      if (config.isSingleDigit) {
+        // For single-digit lotteries, each box value is one digit
+        val.split("").forEach((d) => parsedNums.push(Number(d)));
+      } else {
+        const num = Number(val);
+        if (!isNaN(num)) parsedNums.push(num);
+      }
+    });
+
+    const nums = parsedNums.filter((n) => !isNaN(n) && n >= 0);
+
     if (nums.length === 0) {
-      setError("Please enter at least one number");
+      setError("Please enter your ticket numbers");
       return;
     }
     setLoading(true);
     setError("");
     setResult(null);
     try {
-      const res = await lotteryApi.checkTicket(nums, drawDate);
+      const res = await lotteryApi.checkTicket(nums, drawDate, lotteryName || undefined, letter || undefined);
       setResult(res.data);
       sessionStorage.setItem("lottoscan_result", JSON.stringify(res.data));
     } catch (err: any) {
@@ -115,7 +203,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   };
 
   const handleClear = () => {
-    setNumbers(["", "", "", "", ""]);
+    setNumbers(Array(config.digitCount).fill(""));
     setLetter("");
     setResult(null);
     setError("");
@@ -128,24 +216,80 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         {/* Number inputs */}
         <div>
           <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-3 block">
-            Your Ticket Numbers
+            {config.label}
           </label>
-          <div className="flex gap-3">
-            {numbers.map((num, i) => (
-              <input
-                key={i}
-                ref={(el) => {
-                  inputRefs.current[i] = el;
-                }}
-                type="text"
-                value={num}
-                onChange={(e) => handleNumberChange(i, e.target.value)}
-                placeholder="0"
-                maxLength={2}
-                className="number-input flex-1 min-w-0"
-              />
-            ))}
-          </div>
+          {config.isPyramid && config.pyramidRows ? (
+            /* Pyramid layout: centered rows (e.g. 2-3-4 + letter) */
+            <div className="flex flex-col items-center gap-2">
+              {(() => {
+                let boxIndex = 0;
+                return config.pyramidRows.map((rowCount, rowIdx) => {
+                  const startIdx = boxIndex;
+                  boxIndex += rowCount;
+                  const isLastRow = rowIdx === config.pyramidRows!.length - 1;
+                  return (
+                    <div key={rowIdx} className="flex gap-2 items-center justify-center">
+                      {Array.from({ length: rowCount }, (_, colIdx) => {
+                        const idx = startIdx + colIdx;
+                        return (
+                          <input
+                            key={`${lotteryName}-${idx}`}
+                            ref={(el) => { inputRefs.current[idx] = el; }}
+                            type="text"
+                            inputMode="numeric"
+                            value={numbers[idx] || ""}
+                            onChange={(e) => handleNumberChange(idx, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Backspace" && !numbers[idx] && idx > 0) {
+                                inputRefs.current[idx - 1]?.focus();
+                              }
+                            }}
+                            placeholder="0"
+                            maxLength={1}
+                            className="number-input w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] font-mono text-center text-xl sm:text-2xl font-bold"
+                          />
+                        );
+                      })}
+                      {/* Show letter ball on the last row */}
+                      {isLastRow && config.hasLetter && (
+                        <div className="w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full bg-gold/20 border-2 border-gold flex items-center justify-center text-gold-dark text-xl sm:text-2xl font-bold font-mono cursor-pointer select-none"
+                          title="Lagna / Letter"
+                        >
+                          {letter || "?"}
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          ) : (
+            /* Standard flat row layout */
+            <div className="flex gap-3">
+              {Array.from({ length: config.digitCount }, (_, i) => (
+                <input
+                  key={`${lotteryName}-${i}`}
+                  ref={(el) => {
+                    inputRefs.current[i] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  value={numbers[i] || ""}
+                  onChange={(e) => handleNumberChange(i, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace" && !numbers[i] && i > 0) {
+                      inputRefs.current[i - 1]?.focus();
+                    }
+                  }}
+                  placeholder={config.boxPlaceholders[i] || "0"}
+                  maxLength={config.maxDigitsPerBox}
+                  className={`number-input flex-1 min-w-0 font-mono text-center font-bold ${
+                    config.maxDigitsPerBox === 1 ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Letter & Date */}
@@ -201,6 +345,118 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     </Card>
   );
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const processAndScanQR = useCallback((img: HTMLImageElement) => {
+    let width = img.width;
+    let height = img.height;
+
+    // Minimum scale so small crops are enlarged for finder pattern detection
+    let scale = 1;
+    if (width < 500 || height < 500) {
+      scale = Math.max(500 / width, 500 / height);
+    } else if (width > 1200 || height > 1200) {
+      scale = Math.min(1200 / width, 1200 / height);
+    }
+
+    const scaledW = Math.round(width * scale);
+    const scaledH = Math.round(height * scale);
+    // Add 20% white border padding to reconstruct the QR Quiet Zone for tight crops
+    const marginX = Math.max(30, Math.round(scaledW * 0.2));
+    const marginY = Math.max(30, Math.round(scaledH * 0.2));
+    const canvasW = scaledW + marginX * 2;
+    const canvasH = scaledH + marginY * 2;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    // Fill with pure white background (quiet zone)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvasW, canvasH);
+    ctx.drawImage(img, marginX, marginY, scaledW, scaledH);
+
+    // Pass 1: Standard Padded Scan
+    const imageData = ctx.getImageData(0, 0, canvasW, canvasH);
+    try {
+      const qr = jsQR(imageData.data, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qr?.data) return qr;
+    } catch {}
+
+    // Pass 2: Binarization / Threshold Pass
+    const data = imageData.data;
+    let totalLum = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      totalLum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    }
+    const avgThreshold = totalLum / (data.length / 4);
+
+    const binarizedData = new Uint8ClampedArray(data.length);
+    for (let i = 0; i < data.length; i += 4) {
+      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      const val = lum > avgThreshold * 0.93 ? 255 : 0;
+      binarizedData[i] = val;
+      binarizedData[i + 1] = val;
+      binarizedData[i + 2] = val;
+      binarizedData[i + 3] = 255;
+    }
+
+    try {
+      const qrBin = jsQR(binarizedData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qrBin?.data) return qrBin;
+    } catch {}
+
+    // Pass 3: High Contrast Pass
+    const contrastData = new Uint8ClampedArray(data.length);
+    const factor = 1.6;
+    for (let i = 0; i < data.length; i += 4) {
+      for (let c = 0; c < 3; c++) {
+        contrastData[i + c] = Math.min(255, Math.max(0, Math.round((data[i + c] - 128) * factor + 128)));
+      }
+      contrastData[i + 3] = 255;
+    }
+
+    try {
+      const qrContrast = jsQR(contrastData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
+      if (qrContrast?.data) return qrContrast;
+    } catch {}
+
+    return null;
+  }, []);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setError("");
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const qr = processAndScanQR(img);
+
+        if (qr?.data) {
+          const { nums, letter: parsedLetter } = parseQRText(qr.data);
+          if (nums.length > 0) {
+            setNumbers(nums.map(String).concat(["", "", "", "", ""]).slice(0, 5));
+            if (parsedLetter) setLetter(parsedLetter);
+            setError("");
+          } else {
+            setError(`QR code read ("${qr.data.slice(0, 30)}..."), but could not extract valid ticket numbers.`);
+          }
+        } else {
+          setError("No QR code detected in the uploaded image. Please ensure the QR code is clear, well-lit, and uncropped.");
+        }
+
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const renderScanner = () => (
     <Card>
       <div className="space-y-4">
@@ -209,10 +465,18 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             📷
           </div>
           <div>
-            <p className="text-text-primary font-body font-semibold">Scan QR Code</p>
-            <p className="text-text-secondary text-xs font-body">Scan the QR code on your lottery ticket</p>
+            <p className="text-text-primary font-body font-semibold">Scan or Upload Ticket</p>
+            <p className="text-text-secondary text-xs font-body">Use your camera or upload a ticket image to scan QR code</p>
           </div>
         </div>
+
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          className="hidden"
+        />
 
         {showCamera ? (
           <div className="space-y-3">
@@ -235,13 +499,20 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             </Button>
           </div>
         ) : (
-          <div
-            onClick={() => setShowCamera(true)}
-            className="border-2 border-dashed border-gold-border bg-gold-light/10 hover:bg-gold-light/20 rounded-2xl p-8 text-center cursor-pointer transition-all duration-200"
-          >
-            <div className="text-3xl text-gold-dark mb-2">📷</div>
-            <p className="text-gold-dark font-body font-semibold text-sm">Click to activate camera</p>
-            <p className="text-text-secondary text-xs font-body mt-1">Scan the QR code on your ticket</p>
+          <div className="border-2 border-dashed border-gold-border bg-gold-light/10 rounded-2xl p-6 text-center space-y-4">
+            <div className="text-4xl text-gold-dark">📷</div>
+            <div>
+              <p className="text-gold-dark font-body font-semibold text-sm">Scan QR Code from Ticket</p>
+              <p className="text-text-secondary text-xs font-body mt-1">Open your camera or choose a ticket photo from device</p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+              <Button onClick={() => setShowCamera(true)} size="sm" className="flex items-center justify-center gap-2">
+                <span>📷</span> Open Camera
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="secondary" size="sm" className="flex items-center justify-center gap-2">
+                <span>📁</span> Upload Image
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -283,26 +554,47 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               </div>
 
               <div className="space-y-4 pt-2 border-t border-border-default/40">
-                <div>
-                  <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                    Your Numbers
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {result.ticketNumbers?.map((n: number, i: number) => (
-                      <NumberBall key={i} number={n} matched={result.matchedNumbers?.includes(n)} />
-                    ))}
+                {isPyramidLottery(result.lotteryName) ? (
+                  <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4 text-center space-y-3">
+                    <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
+                      Pyramid Winning Structure
+                    </p>
+                    <PyramidResults numbers={result.winningNumbers} letter={result.letter} />
                   </div>
-                </div>
-                <div>
-                  <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                    Winning Numbers
-                  </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {result.winningNumbers?.map((n: number, i: number) => (
-                      <NumberBall key={i} number={n} variant="default" />
-                    ))}
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
+                        Your Numbers & Lagna
+                      </p>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        {result.ticketNumbers?.map((n: number, i: number) => (
+                          <NumberBall key={i} number={n} matched={result.matchedNumbers?.includes(n)} />
+                        ))}
+                        {(result.userLetter || letter) && (
+                          <ZodiacBall
+                            value={result.userLetter || letter}
+                            size="md"
+                            className={result.matchedLetter ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
+                          />
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
+                        Winning Numbers & Lagna
+                      </p>
+                      <div className="flex gap-2 flex-wrap items-center">
+                        {result.winningNumbers?.map((n: number, i: number) => (
+                          <NumberBall key={i} number={n} variant="default" />
+                        ))}
+                        {result.letter && (
+                          <ZodiacBall value={result.letter} size="md" />
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Grid draw info */}
@@ -311,7 +603,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   ["Lottery", result.lotteryName],
                   ["Draw #", result.drawNumber],
                   ["Date", result.drawDate],
-                  ["Matches", `${result.matchedCount}/${result.winningNumbers?.length || 5}`],
+                  ["Matches", `${result.matchedCount}/${result.winningNumbers?.length || 5}${result.matchedLetter ? " + Lagna ✓" : ""}`],
                 ].map(([k, v]) => (
                   <div key={k}>
                     <p className="text-text-muted text-[10px] uppercase font-bold">{k}</p>
@@ -319,6 +611,37 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   </div>
                 ))}
               </div>
+
+              {(result.userLetter || letter || result.letter) && (
+                <div className="pt-2">
+                  {result.matchedLetter ? (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3.5 py-2 flex items-center gap-2 text-emerald-700 text-xs font-bold font-body">
+                      <span className="text-emerald-500 text-base">✓</span>
+                      <span>
+                        Lagna/Zodiac Matched:{" "}
+                        <span className="text-emerald-800 font-extrabold">
+                          {getZodiacInfo(result.letter || result.userLetter || letter)?.nameEn || result.letter || letter} (
+                          {getZodiacInfo(result.letter || result.userLetter || letter)?.transliteration || result.letter || letter})
+                        </span>
+                      </span>
+                    </div>
+                  ) : (result.userLetter || letter) ? (
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 flex items-center gap-2 text-amber-800 text-xs font-medium font-body">
+                      <span>
+                        Selected Lagna:{" "}
+                        <span className="font-bold">
+                          {getZodiacInfo(result.userLetter || letter)?.nameEn || result.userLetter || letter}
+                        </span>{" "}
+                        {result.letter && (
+                          <span className="text-amber-700">
+                            (Draw Lagna: {getZodiacInfo(result.letter)?.nameEn || result.letter})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
 
               <div className="bg-win-light border border-green-200 rounded-2xl p-4 flex gap-3">
                 <span className="text-win text-lg">🏦</span>
@@ -371,22 +694,32 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             <div className="space-y-4 pt-6 mt-6 border-t border-border-default/40">
               <div>
                 <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                  Your Numbers
+                  Your Numbers & Lagna
                 </p>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center">
                   {result.ticketNumbers.map((n: number, i: number) => (
                     <NumberBall key={i} number={n} variant="unmatched" />
                   ))}
+                  {(result.userLetter || letter) && (
+                    <ZodiacBall
+                      value={result.userLetter || letter}
+                      size="md"
+                      className={result.matchedLetter ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
+                    />
+                  )}
                 </div>
               </div>
               <div>
                 <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                  Winning Numbers
+                  Winning Numbers & Lagna
                 </p>
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap items-center">
                   {result.winningNumbers.map((n: number, i: number) => (
                     <NumberBall key={i} number={n} variant="default" />
                   ))}
+                  {result.letter && (
+                    <ZodiacBall value={result.letter} size="md" />
+                  )}
                 </div>
               </div>
             </div>

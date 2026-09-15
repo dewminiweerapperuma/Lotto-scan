@@ -29,6 +29,8 @@ export interface TicketResult {
   drawDate: string;
   letter?: string;
   zodiac?: string;
+  matchedLetter?: boolean;
+  userLetter?: string;
   message?: string;
 }
 
