@@ -23,8 +23,8 @@ const DLB_LOTTERIES = [
   { name: "Supiri Dhana Sampatha", tabId: "lottery3" },
   { name: "Super Ball",            tabId: "lottery4" },
   { name: "Kapruka",               tabId: "lottery5" },
-  { name: "Sasiri",                tabId: "lottery6" },
-  { name: "Jaya Sampatha",         tabId: "lottery7" },
+  { name: "Sasiri",                tabId: "lottery7" },
+  { name: "Jaya Sampatha",         tabId: "lottery8" },
 ];
 
 let inMemoryPrizes = [];
@@ -222,11 +222,6 @@ const scrapeDLBPrizeStructures = async () => {
 
 /**
  * Scrape DLB results using Cheerio
- * DLB page structure:
- *   #lottery0 - #lottery7  → tab containers for each lottery
- *   .lot_m_re_date          → draw number and date
- *   .eng_letter             → English letter
- *   .number_shanida         → winning number balls
  */
 const scrapeDLB = async () => {
   const results = [];
@@ -238,8 +233,21 @@ const scrapeDLB = async () => {
 
     for (const lottery of DLB_LOTTERIES) {
       try {
-        const container = $(`#${lottery.tabId}`);
+        let container = $(`#${lottery.tabId}`);
         const lotKey = lottery.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+        // Dynamically find matching container by heading if tabId doesn't match
+        for (let i = 0; i <= 10; i++) {
+          const testC = $(`#lottery${i}`);
+          if (testC.length) {
+            const heading = testC.find('.lot_m_re_heading').text().toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (heading && (heading.includes(lotKey) || lotKey.includes(heading))) {
+              container = testC;
+              break;
+            }
+          }
+        }
+
         const prizeStructure = prizeStructures[lotKey] ||
           Object.entries(prizeStructures).find(([k]) => k.includes(lotKey) || lotKey.includes(k))?.[1] || [];
 
