@@ -63,9 +63,42 @@ const createTables = async () => {
     );
   `;
 
+  const createEmployeesTable = `
+    CREATE TABLE IF NOT EXISTS employees (
+      id VARCHAR,
+      agent_id VARCHAR,
+      name VARCHAR,
+      email VARCHAR,
+      phone VARCHAR,
+      counter_name VARCHAR,
+      status VARCHAR,
+      created_at TIMESTAMP
+    );
+  `;
+
+  const createWinningClaimsTable = `
+    CREATE TABLE IF NOT EXISTS winning_claims (
+      id VARCHAR,
+      agent_id VARCHAR,
+      employee_id VARCHAR,
+      employee_name VARCHAR,
+      lottery_name VARCHAR,
+      board VARCHAR,
+      draw_number VARCHAR,
+      draw_date TIMESTAMP,
+      ticket_serial VARCHAR,
+      matched_tier VARCHAR,
+      prize_amount DOUBLE,
+      payout_status VARCHAR,
+      claimed_at TIMESTAMP
+    );
+  `;
+
   await pool.query(createUsersTable);
   await pool.query(createDrawsTable);
   await pool.query(createLivePrizesTable);
+  await pool.query(createEmployeesTable);
+  await pool.query(createWinningClaimsTable);
 };
 
 const initDB = async (retries = 5, delayMs = 3000) => {

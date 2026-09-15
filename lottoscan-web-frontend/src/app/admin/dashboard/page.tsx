@@ -191,7 +191,22 @@ export default function DashboardPage() {
             </Card>
 
             {/* Quick Action Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Link href="/admin/reports" className="block">
+                <Card hover className="flex items-center gap-4 p-5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
+                    📊
+                  </div>
+                  <div>
+                    <p className="text-text-primary font-body font-bold text-sm md:text-base leading-snug">
+                      Daily Winning Report
+                    </p>
+                    <p className="text-text-secondary text-xs font-body mt-0.5">
+                      Payout & staff summaries
+                    </p>
+                  </div>
+                </Card>
+              </Link>
               <Link href="/admin/upload" className="block">
                 <Card hover className="flex items-center gap-4 p-5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
                   <div className="w-12 h-12 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-xl shrink-0">

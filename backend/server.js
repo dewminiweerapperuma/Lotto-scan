@@ -5,6 +5,7 @@ const questdb = require('./db/questdb');
 
 const authRoutes = require('./routes/auth');
 const lotteryRoutes = require('./routes/lottery');
+const agentRoutes = require('./routes/agent');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -33,6 +34,7 @@ app.get('/health', (req, res) => {
 // Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/lottery', lotteryRoutes);
+app.use('/api/agent', agentRoutes);
 
 // 404 Route handler
 app.use((req, res, next) => {
@@ -52,7 +54,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   await questdb.initDB();
 
-  // Auto-seed default admin account if not exists
+  // Auto-seed default admin and initial agency data
   try {
     const User = require('./models/User');
     const existingLk = await User.findByEmail('admin@lottoscan.lk');
@@ -60,8 +62,14 @@ const startServer = async () => {
       await User.create({ email: 'admin@lottoscan.lk', password: 'admin', role: 'admin' });
       console.log('[Auth] Seeded default admin: admin@lottoscan.lk');
     }
+
+    const Employee = require('./models/Employee');
+    await Employee.seedSampleEmployees();
+
+    const Claim = require('./models/Claim');
+    await Claim.seedSampleClaims();
   } catch (err) {
-    console.warn('[Auth] Admin seed notice:', err.message);
+    console.warn('[Auth/Seed] Startup seed notice:', err.message);
   }
 
   app.listen(PORT, () => {

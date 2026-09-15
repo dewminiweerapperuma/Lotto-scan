@@ -46,4 +46,16 @@ export const auth = {
   me: () => apiClient.get("/auth/me"),
 };
 
+export const agent = {
+  getDailyReport: (date?: string, agentId?: string) =>
+    apiClient.get(`/agent/reports/daily?date=${date || ""}&agentId=${agentId || "default-agent"}`),
+  getClaims: (date?: string, agentId?: string) =>
+    apiClient.get(`/agent/claims?date=${date || ""}&agentId=${agentId || "default-agent"}`),
+  recordClaim: (data: any) => apiClient.post("/agent/claims", data),
+  getEmployees: (agentId?: string) =>
+    apiClient.get(`/agent/employees?agentId=${agentId || "default-agent"}`),
+  createEmployee: (data: any) => apiClient.post("/agent/employees", data),
+};
+
 export default apiClient;
+
