@@ -419,7 +419,6 @@ export default function DailyReportsPage() {
                         <th className="py-3 px-5">Winning Prize Value</th>
                         <th className="py-3 px-5 text-center">Winning Tickets (Qty)</th>
                         <th className="py-3 px-5 text-right">Total Payout Amount</th>
-                        <th className="py-3 px-5 text-text-muted font-normal text-right">Contributing Lotteries</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-default/50 font-body text-xs">
@@ -435,25 +434,19 @@ export default function DailyReportsPage() {
                           <td className="py-3 px-5 text-right font-mono font-bold text-win text-sm">
                             Rs. {Number(tier.totalAmount).toLocaleString()}
                           </td>
-                          <td className="py-3 px-5 text-right text-[11px] text-text-secondary">
-                            {tier.lotteries || "DLB Lotteries"}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="bg-amber-50/70 font-bold text-text-primary border-t-2 border-amber-200">
                         <td className="py-3.5 px-5 uppercase text-xs text-amber-900">
-                          DLB Total Subtotal:
+                          DLB Total Subtotal <span className="normal-case font-normal text-[11px] text-amber-800/80 ml-2">(10% Comm: <strong>Rs. {Number(dlbData.estimatedCommission).toLocaleString()}</strong>)</span>:
                         </td>
                         <td className="py-3.5 px-5 text-center font-mono text-sm text-amber-900">
                           {dlbData.totalTickets} Tickets
                         </td>
                         <td className="py-3.5 px-5 text-right font-mono text-base text-win">
                           Rs. {Number(dlbData.totalPayout).toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-5 text-right text-xs font-mono text-amber-900">
-                          Comm. (10%): <strong>Rs. {Number(dlbData.estimatedCommission).toLocaleString()}</strong>
                         </td>
                       </tr>
                     </tfoot>
@@ -497,7 +490,6 @@ export default function DailyReportsPage() {
                         <th className="py-3 px-5">Winning Prize Value</th>
                         <th className="py-3 px-5 text-center">Winning Tickets (Qty)</th>
                         <th className="py-3 px-5 text-right">Total Payout Amount</th>
-                        <th className="py-3 px-5 text-text-muted font-normal text-right">Contributing Lotteries</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border-default/50 font-body text-xs">
@@ -513,25 +505,19 @@ export default function DailyReportsPage() {
                           <td className="py-3 px-5 text-right font-mono font-bold text-win text-sm">
                             Rs. {Number(tier.totalAmount).toLocaleString()}
                           </td>
-                          <td className="py-3 px-5 text-right text-[11px] text-text-secondary">
-                            {tier.lotteries || "NLB Lotteries"}
-                          </td>
                         </tr>
                       ))}
                     </tbody>
                     <tfoot>
                       <tr className="bg-blue-50/70 font-bold text-text-primary border-t-2 border-blue-200">
                         <td className="py-3.5 px-5 uppercase text-xs text-blue-900">
-                          NLB Total Subtotal:
+                          NLB Total Subtotal <span className="normal-case font-normal text-[11px] text-blue-800/80 ml-2">(10% Comm: <strong>Rs. {Number(nlbData.estimatedCommission).toLocaleString()}</strong>)</span>:
                         </td>
                         <td className="py-3.5 px-5 text-center font-mono text-sm text-blue-900">
                           {nlbData.totalTickets} Tickets
                         </td>
                         <td className="py-3.5 px-5 text-right font-mono text-base text-win">
                           Rs. {Number(nlbData.totalPayout).toLocaleString()}
-                        </td>
-                        <td className="py-3.5 px-5 text-right text-xs font-mono text-blue-900">
-                          Comm. (10%): <strong>Rs. {Number(nlbData.estimatedCommission).toLocaleString()}</strong>
                         </td>
                       </tr>
                     </tfoot>
