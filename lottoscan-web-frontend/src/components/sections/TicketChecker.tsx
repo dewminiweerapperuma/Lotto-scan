@@ -36,36 +36,100 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   }, []);
 
   const parseQRText = useCallback((qrText: string) => {
-    let nums: number[] = [];
+    let nums: (number | string)[] = [];
     let extractedLetter = "";
+    let detectedLottery = "";
+    let detectedDraw = "";
 
+    if (!qrText || typeof qrText !== "string") {
+      return { nums: [], letter: "", lottery: "", draw: "" };
+    }
+
+    const clean = qrText.trim();
+
+    // 1. JSON structure
     try {
-      const p = JSON.parse(qrText);
+      const p = JSON.parse(clean);
       if (Array.isArray(p)) {
         nums = p.map(Number);
       } else if (typeof p === "object" && p !== null) {
-        nums = Array.isArray(p.numbers) ? p.numbers.map(Number) : [];
-        if (p.letter) extractedLetter = String(p.letter);
+        if (Array.isArray(p.numbers)) nums = p.numbers.map(Number);
+        else if (Array.isArray(p.nums)) nums = p.nums.map(Number);
+        if (p.letter || p.l) extractedLetter = String(p.letter || p.l).toUpperCase();
+        if (p.lottery || p.lottery_name || p.name) detectedLottery = String(p.lottery || p.lottery_name || p.name);
+        if (p.draw || p.draw_number || p.drawNumber) detectedDraw = String(p.draw || p.draw_number || p.drawNumber);
       }
-    } catch {
-      const parts = qrText.split(/[|/,\s-]+/);
+    } catch {}
+
+    // 2. URL parsing (e.g. nlb.lk or dlb.lk URLs with query params)
+    if (nums.length === 0 && (clean.includes("http://") || clean.includes("https://") || clean.includes("?"))) {
+      try {
+        const url = new URL(clean.startsWith("http") ? clean : `https://${clean}`);
+        const qNums = url.searchParams.get("numbers") || url.searchParams.get("nums") || url.searchParams.get("n");
+        const qLetter = url.searchParams.get("letter") || url.searchParams.get("l");
+        const qDraw = url.searchParams.get("draw") || url.searchParams.get("d");
+        const qLottery = url.searchParams.get("lottery") || url.searchParams.get("lot");
+        if (qNums) nums = qNums.split(/[,-]+/).map(Number);
+        if (qLetter) extractedLetter = qLetter.toUpperCase();
+        if (qDraw) detectedDraw = qDraw;
+        if (qLottery) detectedLottery = qLottery;
+      } catch {}
+    }
+
+    // 3. Delimited text (e.g. NLB|4552|Govisetha|3,13,47,50|I or DLB-AK-3110-29,53,55,61-U)
+    if (nums.length === 0) {
+      const parts = clean.split(/[|#;,]+/);
       for (const part of parts) {
-        const n = parseInt(part, 10);
-        if (!isNaN(n) && n > 0 && n <= 99 && String(n) === part.trim()) {
-          nums.push(n);
-        } else if (/^[A-Za-z]$/.test(part.trim())) {
-          extractedLetter = part.trim().toUpperCase();
+        const pTrim = part.trim();
+        for (const l of LOTTERIES) {
+          if (pTrim.toLowerCase().includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(pTrim.toLowerCase())) {
+            detectedLottery = l.name;
+          }
         }
-      }
-      if (nums.length === 0) {
-        const matches = qrText.match(/\b\d{1,2}\b/g);
-        if (matches) {
-          nums = matches.map(Number).filter((n) => n > 0 && n <= 99);
+        if (/[0-9]+[ ,-]+[0-9]+/.test(pTrim)) {
+          const subNums = pTrim.split(/[ ,-]+/).map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 99);
+          if (subNums.length >= 2) nums = subNums;
+        } else if (/^[A-Za-z]$/.test(pTrim)) {
+          extractedLetter = pTrim.toUpperCase();
+        } else if (/^\d{3,5}$/.test(pTrim) && !detectedDraw) {
+          detectedDraw = pTrim;
         }
       }
     }
 
-    return { nums: nums.filter((n) => !isNaN(n) && n > 0).slice(0, 5), letter: extractedLetter };
+    // 4. Raw sequence or space/comma separated numbers (e.g. "D 06 06 00 06 04 07" or "29 53 55 61 U" or "16, 20, 46")
+    if (nums.length === 0) {
+      const tokens = clean.split(/[\s,/|-]+/);
+      for (const t of tokens) {
+        const trimmed = t.trim();
+        if (/^[A-Za-z]$/.test(trimmed)) {
+          extractedLetter = trimmed.toUpperCase();
+        } else if (/^\d{1,2}$/.test(trimmed)) {
+          nums.push(Number(trimmed));
+        }
+      }
+    }
+
+    // 5. Compact string fallback like "D660647" or "29535561U"
+    if (nums.length === 0) {
+      const matchLeadingLetter = clean.match(/^([A-Za-z])(\d{4,9})$/);
+      if (matchLeadingLetter) {
+        extractedLetter = matchLeadingLetter[1].toUpperCase();
+        nums = matchLeadingLetter[2].split("").map(Number);
+      }
+      const matchTrailingLetter = clean.match(/^(\d{4,9})([A-Za-z])$/);
+      if (matchTrailingLetter) {
+        extractedLetter = matchTrailingLetter[2].toUpperCase();
+        nums = matchTrailingLetter[1].split("").map(Number);
+      }
+    }
+
+    return {
+      nums: nums.filter((n) => !isNaN(Number(n)) && Number(n) >= 0),
+      letter: extractedLetter,
+      lottery: detectedLottery,
+      draw: detectedDraw
+    };
   }, []);
 
   const scanFrame = useCallback(() => {
@@ -347,81 +411,99 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processAndScanQR = useCallback((img: HTMLImageElement) => {
-    let width = img.width;
-    let height = img.height;
-
-    // Minimum scale so small crops are enlarged for finder pattern detection
-    let scale = 1;
-    if (width < 500 || height < 500) {
-      scale = Math.max(500 / width, 500 / height);
-    } else if (width > 1200 || height > 1200) {
-      scale = Math.min(1200 / width, 1200 / height);
+  const processAndScanQR = useCallback(async (img: HTMLImageElement): Promise<{ data: string } | null> => {
+    // 1. Try Native BarcodeDetector if available (hardware-accelerated, supports rotated/skewed full ticket photos)
+    if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+      try {
+        const formats = ((await (window as any).BarcodeDetector.getSupportedFormats?.()) || ["qr_code"]).filter(Boolean);
+        const detector = new (window as any).BarcodeDetector({ formats: formats.length ? formats : ["qr_code", "code_128", "code_39", "ean_13"] });
+        const detected = await detector.detect(img);
+        if (detected && detected.length > 0 && detected[0].rawValue) {
+          return { data: detected[0].rawValue };
+        }
+      } catch (err) {
+        console.warn("BarcodeDetector attempt notice:", err);
+      }
     }
 
-    const scaledW = Math.round(width * scale);
-    const scaledH = Math.round(height * scale);
-    // Add 20% white border padding to reconstruct the QR Quiet Zone for tight crops
-    const marginX = Math.max(30, Math.round(scaledW * 0.2));
-    const marginY = Math.max(30, Math.round(scaledH * 0.2));
-    const canvasW = scaledW + marginX * 2;
-    const canvasH = scaledH + marginY * 2;
+    // 2. Multi-Pass & Multi-Crop JSQR Fallback
+    const scanCanvas = (ctx: CanvasRenderingContext2D, w: number, h: number): { data: string } | null => {
+      const imgData = ctx.getImageData(0, 0, w, h);
 
+      // Pass A: Direct
+      try {
+        const res = jsQR(imgData.data, w, h, { inversionAttempts: "attemptBoth" });
+        if (res?.data) return res;
+      } catch {}
+
+      // Pass B: Binarization / Contrast
+      const data = imgData.data;
+      let totalLum = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        totalLum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      }
+      const avgThreshold = totalLum / (data.length / 4);
+      const binarizedData = new Uint8ClampedArray(data.length);
+      for (let i = 0; i < data.length; i += 4) {
+        const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        const val = lum > avgThreshold * 0.92 ? 255 : 0;
+        binarizedData[i] = val;
+        binarizedData[i + 1] = val;
+        binarizedData[i + 2] = val;
+        binarizedData[i + 3] = 255;
+      }
+      try {
+        const resBin = jsQR(binarizedData, w, h, { inversionAttempts: "attemptBoth" });
+        if (resBin?.data) return resBin;
+      } catch {}
+
+      return null;
+    };
+
+    // Scaled full canvas scan
     const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext("2d");
+    let scale = 1;
+    if (img.width < 600 || img.height < 600) {
+      scale = Math.max(600 / img.width, 600 / img.height);
+    } else if (img.width > 1600 || img.height > 1600) {
+      scale = Math.min(1600 / img.width, 1600 / img.height);
+    }
+    const sw = Math.round(img.width * scale);
+    const sh = Math.round(img.height * scale);
+    const pad = Math.max(30, Math.round(sw * 0.15));
+    canvas.width = sw + pad * 2;
+    canvas.height = sh + pad * 2;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
 
-    // Fill with pure white background (quiet zone)
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, canvasW, canvasH);
-    ctx.drawImage(img, marginX, marginY, scaledW, scaledH);
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, pad, pad, sw, sh);
 
-    // Pass 1: Standard Padded Scan
-    const imageData = ctx.getImageData(0, 0, canvasW, canvasH);
-    try {
-      const qr = jsQR(imageData.data, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
-      if (qr?.data) return qr;
-    } catch {}
+    const fullResult = scanCanvas(ctx, canvas.width, canvas.height);
+    if (fullResult?.data) return fullResult;
 
-    // Pass 2: Binarization / Threshold Pass
-    const data = imageData.data;
-    let totalLum = 0;
-    for (let i = 0; i < data.length; i += 4) {
-      totalLum += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    }
-    const avgThreshold = totalLum / (data.length / 4);
+    // Multi-Crop Regions for full ticket photos (Bottom-Right, Bottom-Left, Top-Right, Center)
+    const regions = [
+      { x: img.width * 0.4, y: img.height * 0.4, w: img.width * 0.6, h: img.height * 0.6 },
+      { x: 0, y: img.height * 0.4, w: img.width * 0.6, h: img.height * 0.6 },
+      { x: img.width * 0.4, y: 0, w: img.width * 0.6, h: img.height * 0.6 },
+      { x: img.width * 0.2, y: img.height * 0.2, w: img.width * 0.6, h: img.height * 0.6 },
+    ];
 
-    const binarizedData = new Uint8ClampedArray(data.length);
-    for (let i = 0; i < data.length; i += 4) {
-      const lum = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      const val = lum > avgThreshold * 0.93 ? 255 : 0;
-      binarizedData[i] = val;
-      binarizedData[i + 1] = val;
-      binarizedData[i + 2] = val;
-      binarizedData[i + 3] = 255;
-    }
-
-    try {
-      const qrBin = jsQR(binarizedData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
-      if (qrBin?.data) return qrBin;
-    } catch {}
-
-    // Pass 3: High Contrast Pass
-    const contrastData = new Uint8ClampedArray(data.length);
-    const factor = 1.6;
-    for (let i = 0; i < data.length; i += 4) {
-      for (let c = 0; c < 3; c++) {
-        contrastData[i + c] = Math.min(255, Math.max(0, Math.round((data[i + c] - 128) * factor + 128)));
+    for (const r of regions) {
+      const cropCanvas = document.createElement("canvas");
+      cropCanvas.width = 600;
+      cropCanvas.height = 600;
+      const cropCtx = cropCanvas.getContext("2d", { willReadFrequently: true });
+      if (cropCtx) {
+        cropCtx.fillStyle = "#FFFFFF";
+        cropCtx.fillRect(0, 0, 600, 600);
+        cropCtx.drawImage(img, r.x, r.y, r.w, r.h, 40, 40, 520, 520);
+        const cropRes = scanCanvas(cropCtx, 600, 600);
+        if (cropRes?.data) return cropRes;
       }
-      contrastData[i + 3] = 255;
     }
-
-    try {
-      const qrContrast = jsQR(contrastData, canvasW, canvasH, { inversionAttempts: "attemptBoth" });
-      if (qrContrast?.data) return qrContrast;
-    } catch {}
 
     return null;
   }, []);
@@ -434,20 +516,28 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
-      img.onload = () => {
-        const qr = processAndScanQR(img);
+      img.onload = async () => {
+        try {
+          const qr = await processAndScanQR(img);
 
-        if (qr?.data) {
-          const { nums, letter: parsedLetter } = parseQRText(qr.data);
-          if (nums.length > 0) {
-            setNumbers(nums.map(String).concat(["", "", "", "", ""]).slice(0, 5));
-            if (parsedLetter) setLetter(parsedLetter);
-            setError("");
+          if (qr?.data) {
+            const { nums, letter: parsedLetter, lottery: detectedLottery } = parseQRText(qr.data);
+            if (nums.length > 0) {
+              if (detectedLottery) setLotteryName(detectedLottery);
+              const targetCount = config.digitCount || 5;
+              const formattedNums = nums.map(String);
+              while (formattedNums.length < targetCount) formattedNums.push("");
+              setNumbers(formattedNums.slice(0, targetCount));
+              if (parsedLetter) setLetter(parsedLetter);
+              setError("");
+            } else {
+              setError(`QR code read ("${qr.data.slice(0, 40)}..."), but could not extract valid ticket numbers.`);
+            }
           } else {
-            setError(`QR code read ("${qr.data.slice(0, 30)}..."), but could not extract valid ticket numbers.`);
+            setError("No QR code detected in the uploaded image. Please ensure the QR code is clear, well-lit, and uncropped.");
           }
-        } else {
-          setError("No QR code detected in the uploaded image. Please ensure the QR code is clear, well-lit, and uncropped.");
+        } catch (err: any) {
+          setError("Failed to process image. Please try again.");
         }
 
         if (fileInputRef.current) fileInputRef.current.value = "";
