@@ -19,7 +19,6 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const [letter, setLetter] = useState("");
   const [drawDate, setDrawDate] = useState(new Date().toISOString().slice(0, 10));
   const [lotteryName, setLotteryName] = useState("");
-  const config = getLotteryConfig(lotteryName);
   const [loading, setLoading] = useState(false);
   const [isScanningImage, setIsScanningImage] = useState(false);
   const [scanStatus, setScanStatus] = useState("");
