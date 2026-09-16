@@ -14,7 +14,7 @@ export default function DailyReportsPage() {
   const { user, loading, isAdmin, logout } = useAuth();
   const router = useRouter();
 
-  // Selected date (defaults to today in local Colombo timezone YYYY-MM-DD)
+  // Selected date (defaults to today YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return new Date().toISOString().slice(0, 10);
   });
@@ -22,7 +22,7 @@ export default function DailyReportsPage() {
   const [reportData, setReportData] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"lotteries" | "counters" | "claims">("lotteries");
+  const [activeTab, setActiveTab] = useState<"boards" | "counters" | "claims">("boards");
 
   // Record Claim Modal State
   const [isClaimModalOpen, setIsClaimModalOpen] = useState(false);
@@ -154,7 +154,10 @@ export default function DailyReportsPage() {
     activeCounters: 0
   };
 
-  const lotteries = reportData?.lotteryBreakdown || [];
+  const boardBreakdown = reportData?.boardBreakdown || {};
+  const dlbData = boardBreakdown["DLB"] || { board: "DLB", totalTickets: 0, totalPayout: 0, estimatedCommission: 0, tiers: [] };
+  const nlbData = boardBreakdown["NLB"] || { board: "NLB", totalTickets: 0, totalPayout: 0, estimatedCommission: 0, tiers: [] };
+
   const counterStaff = reportData?.employeeBreakdown || [];
   const recentClaims = reportData?.recentClaims || [];
 
@@ -163,7 +166,7 @@ export default function DailyReportsPage() {
       {/* ─── Printable Header (Shown Only on Print) ─── */}
       <div className="hidden print:block mb-8 border-b-2 border-black pb-4 text-center">
         <h1 className="text-2xl font-bold uppercase tracking-wider">LottoScan — National & Development Lotteries</h1>
-        <h2 className="text-xl font-extrabold mt-1">DAILY WINNING TICKETS SUMMARY REPORT</h2>
+        <h2 className="text-xl font-extrabold mt-1">DAILY WINNING TICKETS SUMMARY REPORT (BOARD-WISE)</h2>
         <div className="flex justify-between text-xs mt-3 px-4 font-mono font-bold">
           <span>Agency: Central Regional Lottery Agency (NLB: NLB-AG-7841 | DLB: DLB-AG-3092)</span>
           <span>Report Date: {selectedDate}</span>
@@ -186,7 +189,7 @@ export default function DailyReportsPage() {
               </h1>
             </div>
             <p className="text-text-secondary font-body text-xs font-semibold mt-1">
-              Area Agency ID: <span className="font-mono text-text-primary font-bold">NLB-AG-7841 / DLB-AG-3092</span> • Central Regional Agency
+              Area Agency: <span className="font-mono text-text-primary font-bold">NLB-AG-7841 / DLB-AG-3092</span> • Central Regional Agency
             </p>
           </div>
 
@@ -198,7 +201,7 @@ export default function DailyReportsPage() {
               onClick={() => setIsEmpModalOpen(true)}
               className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-gold"
             >
-              👥 Add Employee / Counter
+              👥 Add Counter Staff
             </Button>
             <Button
               variant="outline"
@@ -329,14 +332,14 @@ export default function DailyReportsPage() {
         {/* ─── Navigation Tabs (Screen Only) ─── */}
         <div className="flex border-b border-border-default mb-6 gap-2 print:hidden">
           <button
-            onClick={() => setActiveTab("lotteries")}
+            onClick={() => setActiveTab("boards")}
             className={`py-2.5 px-4 font-body font-bold text-xs sm:text-sm border-b-2 transition-all ${
-              activeTab === "lotteries"
+              activeTab === "boards"
                 ? "border-gold text-gold-dark bg-white rounded-t-lg shadow-sm"
                 : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
-            🎰 Lottery & Tier Breakdown ({lotteries.length})
+            🏛️ Board-Wise Summary (NLB & DLB)
           </button>
           <button
             onClick={() => setActiveTab("counters")}
@@ -360,113 +363,193 @@ export default function DailyReportsPage() {
           </button>
         </div>
 
-        {/* ─── TAB 1: Lottery & Tier Breakdown ─── */}
-        {(activeTab === "lotteries" || typeof window === "undefined") && (
-          <Card className="bg-white border border-border-default shadow-sm overflow-hidden mb-8">
-            <div className="p-4 border-b border-border-default flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-display font-extrabold text-text-primary">
-                  Lottery-wise Winning Distribution
-                </h2>
-                <p className="text-xs text-text-secondary font-body">
-                  Summary of all winning ticket payouts grouped by lottery game and tier for {selectedDate}
-                </p>
+        {/* ─── TAB 1: Board-Wise Summary (DLB & NLB) ─── */}
+        {(activeTab === "boards" || typeof window === "undefined") && (
+          <div className="space-y-8 mb-8">
+            {/* 1. Development Lotteries Board (DLB) Section */}
+            <Card className="bg-white border border-border-default shadow-sm overflow-hidden">
+              <div className="p-4 bg-amber-50/50 border-b border-amber-200/60 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                    DLB
+                  </span>
+                  <div>
+                    <h2 className="text-base font-display font-extrabold text-text-primary">
+                      Development Lotteries Board — Winning Results Summary
+                    </h2>
+                    <p className="text-xs text-text-secondary font-body">
+                      Breakdown of winning prizes paid for DLB lotteries (Ada Kotipathi, Shanida, Lagna, Kapruka, Sasiri, etc.)
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right hidden sm:block">
+                  <span className="text-xs font-mono font-bold text-text-secondary">
+                    Total DLB Tickets: <strong className="text-text-primary">{dlbData.totalTickets}</strong>
+                  </span>
+                </div>
               </div>
-              <Badge variant="gold">Official NLB / DLB Format</Badge>
-            </div>
 
-            {dataLoading ? (
-              <div className="space-y-3 p-6">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 skeleton rounded-xl" />
-                ))}
-              </div>
-            ) : lotteries.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="text-3xl mb-2">📋</p>
-                <p className="text-text-secondary text-sm font-body font-semibold">
-                  No winning claims recorded for {selectedDate}.
-                </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsClaimModalOpen(true)}
-                  className="mt-4 border-gold-border text-gold-dark text-xs font-bold"
-                >
-                  ➕ Record First Payout for this Date
-                </Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="bg-brand-section text-text-secondary font-body font-bold text-[11px] uppercase tracking-wider border-b border-border-default">
-                      <th className="py-3 px-4">Lottery Name</th>
-                      <th className="py-3 px-4">Board</th>
-                      <th className="py-3 px-4">Draw No</th>
-                      <th className="py-3 px-4">Prize Tier Breakdown</th>
-                      <th className="py-3 px-4 text-center">Winning Qty</th>
-                      <th className="py-3 px-4 text-right">Total Payout</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border-default/50 font-body text-xs">
-                    {lotteries.map((lot: any, idx: number) => (
-                      <tr key={idx} className="hover:bg-brand-card-hover transition-colors">
-                        <td className="py-3.5 px-4 font-bold text-text-primary">
-                          {lot.lotteryName}
+              {dlbData.tiers.length === 0 ? (
+                <div className="p-8 text-center text-text-muted text-xs font-body">
+                  No DLB winning payouts recorded for {selectedDate}.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-brand-section text-text-secondary font-body font-bold text-[11px] uppercase tracking-wider border-b border-border-default">
+                        <th className="py-3 px-5">Winning Prize Value</th>
+                        <th className="py-3 px-5 text-center">Winning Tickets (Qty)</th>
+                        <th className="py-3 px-5 text-right">Total Payout Amount</th>
+                        <th className="py-3 px-5 text-text-muted font-normal text-right">Contributing Lotteries</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-default/50 font-body text-xs">
+                      {dlbData.tiers.map((tier: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-brand-card-hover transition-colors">
+                          <td className="py-3 px-5 font-bold text-text-primary flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-amber-500" />
+                            Rs. {Number(tier.prizeValue).toLocaleString()} Prize
+                          </td>
+                          <td className="py-3 px-5 text-center font-mono font-extrabold text-text-primary text-sm">
+                            {tier.ticketCount} <span className="text-[10px] font-normal text-text-muted">tickets</span>
+                          </td>
+                          <td className="py-3 px-5 text-right font-mono font-bold text-win text-sm">
+                            Rs. {Number(tier.totalAmount).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-5 text-right text-[11px] text-text-secondary">
+                            {tier.lotteries || "DLB Lotteries"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-amber-50/70 font-bold text-text-primary border-t-2 border-amber-200">
+                        <td className="py-3.5 px-5 uppercase text-xs text-amber-900">
+                          DLB Total Subtotal:
                         </td>
-                        <td className="py-3.5 px-4">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              lot.board === "NLB"
-                                ? "bg-blue-100 text-blue-800 border border-blue-200"
-                                : "bg-amber-100 text-amber-800 border border-amber-200"
-                            }`}
-                          >
-                            {lot.board}
-                          </span>
+                        <td className="py-3.5 px-5 text-center font-mono text-sm text-amber-900">
+                          {dlbData.totalTickets} Tickets
                         </td>
-                        <td className="py-3.5 px-4 font-mono font-bold text-text-secondary">
-                          #{lot.drawNumber || "N/A"}
+                        <td className="py-3.5 px-5 text-right font-mono text-base text-win">
+                          Rs. {Number(dlbData.totalPayout).toLocaleString()}
                         </td>
-                        <td className="py-3.5 px-4">
-                          <div className="space-y-1">
-                            {Object.entries(lot.tierBreakdown || {}).map(([tierName, tierData]: [string, any], tIdx: number) => (
-                              <div key={tIdx} className="flex items-center justify-between gap-4 text-[11px] bg-brand-section px-2 py-0.5 rounded border border-border-default/40">
-                                <span className="font-semibold text-text-primary">{tierName}</span>
-                                <span className="font-mono text-text-secondary">
-                                  {tierData.count} × Rs. {Number(tierData.unitPrize || (tierData.totalAmount / tierData.count)).toLocaleString()} = <strong>Rs. {Number(tierData.totalAmount).toLocaleString()}</strong>
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-center font-bold text-text-primary font-mono">
-                          {lot.ticketsCount}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-bold text-win font-mono text-sm">
-                          Rs. {Number(lot.totalPayout).toLocaleString()}
+                        <td className="py-3.5 px-5 text-right text-xs font-mono text-amber-900">
+                          Comm. (10%): <strong>Rs. {Number(dlbData.estimatedCommission).toLocaleString()}</strong>
                         </td>
                       </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-brand-section font-bold text-text-primary border-t-2 border-border-default">
-                      <td colSpan={4} className="py-3.5 px-4 text-right uppercase text-xs">
-                        Grand Total Payout:
-                      </td>
-                      <td className="py-3.5 px-4 text-center font-mono text-sm">
-                        {metrics.totalTickets}
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-mono text-base text-win">
-                        Rs. {Number(metrics.totalPayout).toLocaleString()}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            {/* 2. National Lotteries Board (NLB) Section */}
+            <Card className="bg-white border border-border-default shadow-sm overflow-hidden">
+              <div className="p-4 bg-blue-50/50 border-b border-blue-200/60 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className="px-2.5 py-1 rounded-md text-xs font-bold bg-blue-100 text-blue-900 border border-blue-300">
+                    NLB
+                  </span>
+                  <div>
+                    <h2 className="text-base font-display font-extrabold text-text-primary">
+                      National Lotteries Board — Winning Results Summary
+                    </h2>
+                    <p className="text-xs text-text-secondary font-body">
+                      Breakdown of winning prizes paid for NLB lotteries (Govisetha, Mahajana Sampatha, Mega Power, Dhana Nidhanaya, etc.)
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right hidden sm:block">
+                  <span className="text-xs font-mono font-bold text-text-secondary">
+                    Total NLB Tickets: <strong className="text-text-primary">{nlbData.totalTickets}</strong>
+                  </span>
+                </div>
               </div>
-            )}
-          </Card>
+
+              {nlbData.tiers.length === 0 ? (
+                <div className="p-8 text-center text-text-muted text-xs font-body">
+                  No NLB winning payouts recorded for {selectedDate}.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-brand-section text-text-secondary font-body font-bold text-[11px] uppercase tracking-wider border-b border-border-default">
+                        <th className="py-3 px-5">Winning Prize Value</th>
+                        <th className="py-3 px-5 text-center">Winning Tickets (Qty)</th>
+                        <th className="py-3 px-5 text-right">Total Payout Amount</th>
+                        <th className="py-3 px-5 text-text-muted font-normal text-right">Contributing Lotteries</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border-default/50 font-body text-xs">
+                      {nlbData.tiers.map((tier: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-brand-card-hover transition-colors">
+                          <td className="py-3 px-5 font-bold text-text-primary flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-blue-500" />
+                            Rs. {Number(tier.prizeValue).toLocaleString()} Prize
+                          </td>
+                          <td className="py-3 px-5 text-center font-mono font-extrabold text-text-primary text-sm">
+                            {tier.ticketCount} <span className="text-[10px] font-normal text-text-muted">tickets</span>
+                          </td>
+                          <td className="py-3 px-5 text-right font-mono font-bold text-win text-sm">
+                            Rs. {Number(tier.totalAmount).toLocaleString()}
+                          </td>
+                          <td className="py-3 px-5 text-right text-[11px] text-text-secondary">
+                            {tier.lotteries || "NLB Lotteries"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="bg-blue-50/70 font-bold text-text-primary border-t-2 border-blue-200">
+                        <td className="py-3.5 px-5 uppercase text-xs text-blue-900">
+                          NLB Total Subtotal:
+                        </td>
+                        <td className="py-3.5 px-5 text-center font-mono text-sm text-blue-900">
+                          {nlbData.totalTickets} Tickets
+                        </td>
+                        <td className="py-3.5 px-5 text-right font-mono text-base text-win">
+                          Rs. {Number(nlbData.totalPayout).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-5 text-right text-xs font-mono text-blue-900">
+                          Comm. (10%): <strong>Rs. {Number(nlbData.estimatedCommission).toLocaleString()}</strong>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            {/* 3. Grand Agency Combined Total Banner */}
+            <Card className="bg-brand-section border-2 border-gold-border p-5 shadow-sm">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-display font-extrabold text-text-primary text-lg">
+                    Grand Daily Winning Payout Summary
+                  </h3>
+                  <p className="text-text-secondary text-xs font-body mt-0.5">
+                    Combined total of all winning tickets claimed across both DLB & NLB boards for {selectedDate}
+                  </p>
+                </div>
+                <div className="flex items-center gap-8 text-right">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-text-secondary block">Total Tickets</span>
+                    <span className="font-mono text-xl font-extrabold text-text-primary">{metrics.totalTickets}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-text-secondary block">Total Cash Disbursed</span>
+                    <span className="font-mono text-2xl font-extrabold text-win">Rs. {Number(metrics.totalPayout).toLocaleString()}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-text-secondary block">Total 10% Commission</span>
+                    <span className="font-mono text-xl font-extrabold text-gold-dark">Rs. {Number(metrics.estimatedCommission).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
 
         {/* ─── TAB 2: Counter / Employee Performance ─── */}
@@ -487,7 +570,7 @@ export default function DailyReportsPage() {
                 onClick={() => setIsEmpModalOpen(true)}
                 className="text-xs font-bold border-border-default"
               >
-                ➕ Add Counter
+                ➕ Add Counter Staff
               </Button>
             </div>
 
@@ -546,6 +629,7 @@ export default function DailyReportsPage() {
                 <thead>
                   <tr className="bg-brand-section text-text-secondary font-body font-bold text-[11px] uppercase tracking-wider border-b border-border-default">
                     <th className="py-3 px-4">Ticket Serial</th>
+                    <th className="py-3 px-4">Board</th>
                     <th className="py-3 px-4">Lottery</th>
                     <th className="py-3 px-4">Tier Matched</th>
                     <th className="py-3 px-4">Handled By</th>
@@ -559,8 +643,19 @@ export default function DailyReportsPage() {
                       <td className="py-3.5 px-4 font-mono font-bold text-gold-dark">
                         {claim.ticketSerial}
                       </td>
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            claim.board === "NLB"
+                              ? "bg-blue-100 text-blue-800 border border-blue-200"
+                              : "bg-amber-100 text-amber-800 border border-amber-200"
+                          }`}
+                        >
+                          {claim.board}
+                        </span>
+                      </td>
                       <td className="py-3.5 px-4 font-bold text-text-primary">
-                        {claim.lotteryName} <span className="text-text-muted font-normal text-[10px]">({claim.board})</span>
+                        {claim.lotteryName}
                       </td>
                       <td className="py-3.5 px-4 text-text-secondary">
                         {claim.matchedTier}
@@ -619,7 +714,7 @@ export default function DailyReportsPage() {
             <form onSubmit={handleRecordClaim} className="space-y-4 text-xs font-body">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-text-secondary mb-1">Lottery</label>
+                  <label className="block font-bold text-text-secondary mb-1">Lottery & Board</label>
                   <select
                     value={claimForm.lotteryName}
                     onChange={(e) => {
@@ -641,20 +736,24 @@ export default function DailyReportsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-text-secondary mb-1">Draw Number</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. 4552"
-                    value={claimForm.drawNumber}
-                    onChange={(e) => setClaimForm({ ...claimForm, drawNumber: e.target.value })}
-                    className="w-full border border-border-default rounded-lg px-3 py-2 bg-brand-section text-text-primary font-mono focus:outline-none focus:border-gold"
-                  />
+                  <label className="block font-bold text-text-secondary mb-1">Winning Prize (Rs.)</label>
+                  <select
+                    value={claimForm.prizeAmount}
+                    onChange={(e) => setClaimForm({ ...claimForm, prizeAmount: e.target.value })}
+                    className="w-full border border-border-default rounded-lg px-3 py-2 bg-brand-section text-win font-mono font-bold text-sm focus:outline-none focus:border-gold"
+                  >
+                    {[40, 80, 100, 120, 200, 400, 500, 1000, 2000, 2500, 4000, 5000, 10000, 20000, 50000, 100000, 200000, 250000].map((p) => (
+                      <option key={p} value={p}>
+                        Rs. {p.toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-text-secondary mb-1">Matched Tier</label>
+                  <label className="block font-bold text-text-secondary mb-1">Matched Tier / Detail</label>
                   <input
                     type="text"
                     placeholder="e.g. 3 Numbers Match"
@@ -665,29 +764,19 @@ export default function DailyReportsPage() {
                 </div>
 
                 <div>
-                  <label className="block font-bold text-text-secondary mb-1">Prize Paid (Rs.)</label>
+                  <label className="block font-bold text-text-secondary mb-1">Ticket Serial / Barcode</label>
                   <input
-                    type="number"
-                    value={claimForm.prizeAmount}
-                    onChange={(e) => setClaimForm({ ...claimForm, prizeAmount: e.target.value })}
-                    className="w-full border border-border-default rounded-lg px-3 py-2 bg-brand-section text-win font-mono font-bold text-sm focus:outline-none focus:border-gold"
+                    type="text"
+                    placeholder="e.g. TCK-849201"
+                    value={claimForm.ticketSerial}
+                    onChange={(e) => setClaimForm({ ...claimForm, ticketSerial: e.target.value })}
+                    className="w-full border border-border-default rounded-lg px-3 py-2 bg-brand-section text-text-primary font-mono focus:outline-none focus:border-gold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-text-secondary mb-1">Ticket Serial / Barcode</label>
-                <input
-                  type="text"
-                  placeholder="e.g. TCK-849201"
-                  value={claimForm.ticketSerial}
-                  onChange={(e) => setClaimForm({ ...claimForm, ticketSerial: e.target.value })}
-                  className="w-full border border-border-default rounded-lg px-3 py-2 bg-brand-section text-text-primary font-mono focus:outline-none focus:border-gold"
-                />
-              </div>
-
-              <div>
-                <label className="block font-bold text-text-secondary mb-1">Counter / Employee</label>
+                <label className="block font-bold text-text-secondary mb-1">Counter Staff / Employee</label>
                 <select
                   value={claimForm.employeeName}
                   onChange={(e) => setClaimForm({ ...claimForm, employeeName: e.target.value })}
@@ -731,7 +820,7 @@ export default function DailyReportsPage() {
               ✕
             </button>
             <h3 className="text-lg font-display font-extrabold text-text-primary mb-1">
-              Add Counter Employee
+              Add Counter Staff / Employee
             </h3>
             <p className="text-xs text-text-secondary font-body mb-4">
               Register a new counter staff or mobile seller under your agency

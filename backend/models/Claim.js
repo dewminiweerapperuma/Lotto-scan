@@ -159,6 +159,52 @@ class Claim {
 
     const employeeBreakdown = Array.from(employeeMap.values()).sort((a, b) => b.totalPayout - a.totalPayout);
 
+    // Aggregate by Board (NLB & DLB) and by Prize Value (40, 80, 100, 200, etc.)
+    const boards = ['NLB', 'DLB'];
+    const boardBreakdown = {};
+
+    boards.forEach(boardName => {
+      const boardClaims = claims.filter(c => (c.board || '').toUpperCase() === boardName);
+      const prizeValueMap = new Map();
+
+      boardClaims.forEach(c => {
+        const prize = parseFloat(c.prizeAmount) || 0;
+        if (!prizeValueMap.has(prize)) {
+          prizeValueMap.set(prize, {
+            prizeValue: prize,
+            ticketCount: 0,
+            totalAmount: 0,
+            lotteries: new Set()
+          });
+        }
+        const item = prizeValueMap.get(prize);
+        item.ticketCount += 1;
+        item.totalAmount += prize;
+        if (c.lotteryName) item.lotteries.add(c.lotteryName);
+      });
+
+      const tiers = Array.from(prizeValueMap.values())
+        .map(t => ({
+          prizeValue: t.prizeValue,
+          ticketCount: t.ticketCount,
+          totalAmount: t.totalAmount,
+          lotteries: Array.from(t.lotteries).join(', ')
+        }))
+        .sort((a, b) => a.prizeValue - b.prizeValue);
+
+      const boardTickets = boardClaims.length;
+      const boardPayout = boardClaims.reduce((acc, c) => acc + (c.prizeAmount || 0), 0);
+      const boardCommission = boardPayout * agencyCommissionRate;
+
+      boardBreakdown[boardName] = {
+        board: boardName,
+        totalTickets: boardTickets,
+        totalPayout: boardPayout,
+        estimatedCommission: boardCommission,
+        tiers
+      };
+    });
+
     return {
       reportDate: dateStr,
       agentId,
@@ -171,6 +217,7 @@ class Claim {
         estimatedCommission,
         activeCounters: employeeBreakdown.length || 1,
       },
+      boardBreakdown,
       lotteryBreakdown,
       employeeBreakdown,
       recentClaims: claims.slice(0, 20)
