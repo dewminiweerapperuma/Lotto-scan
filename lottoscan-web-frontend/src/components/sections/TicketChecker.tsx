@@ -12,6 +12,7 @@ import ZodiacBall, { ZodiacBadge } from "@/components/ui/ZodiacBall";
 import { getZodiacInfo } from "@/lib/zodiac";
 import { getLotteryConfig } from "@/lib/lotteryConfig";
 import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
+import { scanTicketImage, parseTicketText } from "@/lib/ticketScanner";
 
 export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) {
   const [numbers, setNumbers] = useState(["", "", "", "", ""]);
@@ -19,6 +20,8 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const [drawDate, setDrawDate] = useState(new Date().toISOString().slice(0, 10));
   const [lotteryName, setLotteryName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isScanningImage, setIsScanningImage] = useState(false);
+  const [scanStatus, setScanStatus] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -513,34 +516,34 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     if (!file) return;
 
     setError("");
+    setIsScanningImage(true);
+    setScanStatus("Analyzing image with multi-engine detector...");
+
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
       img.onload = async () => {
         try {
-          const qr = await processAndScanQR(img);
+          const parsed = await scanTicketImage(img, (msg) => setScanStatus(msg));
 
-          if (qr?.data) {
-            const { nums, letter: parsedLetter, lottery: detectedLottery } = parseQRText(qr.data);
-            if (nums.length > 0) {
-              if (detectedLottery) setLotteryName(detectedLottery);
-              const targetCount = config.digitCount || 5;
-              const formattedNums = nums.map(String);
-              while (formattedNums.length < targetCount) formattedNums.push("");
-              setNumbers(formattedNums.slice(0, targetCount));
-              if (parsedLetter) setLetter(parsedLetter);
-              setError("");
-            } else {
-              setError(`QR code read ("${qr.data.slice(0, 40)}..."), but could not extract valid ticket numbers.`);
-            }
+          if (parsed && (parsed.numbers.length > 0 || parsed.letter)) {
+            if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
+            const targetCount = config.digitCount || 5;
+            const formattedNums = parsed.numbers.map(String);
+            while (formattedNums.length < targetCount) formattedNums.push("");
+            setNumbers(formattedNums.slice(0, targetCount));
+            if (parsed.letter) setLetter(parsed.letter);
+            setError("");
           } else {
-            setError("No QR code detected in the uploaded image. Please ensure the QR code is clear, well-lit, and uncropped.");
+            setError("No barcode, QR code, or readable ticket numbers found. Please ensure the ticket image is clear, unblurred, and well-lit, or enter numbers manually.");
           }
         } catch (err: any) {
-          setError("Failed to process image. Please try again.");
+          setError("Could not process ticket image. Please try again with a clearer photo or enter numbers manually.");
+        } finally {
+          setIsScanningImage(false);
+          setScanStatus("");
+          if (fileInputRef.current) fileInputRef.current.value = "";
         }
-
-        if (fileInputRef.current) fileInputRef.current.value = "";
       };
       img.src = event.target?.result as string;
     };
@@ -556,7 +559,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           </div>
           <div>
             <p className="text-text-primary font-body font-semibold">Scan or Upload Ticket</p>
-            <p className="text-text-secondary text-xs font-body">Use your camera or upload a ticket image to scan QR code</p>
+            <p className="text-text-secondary text-xs font-body">Use your camera or upload a ticket photo (supports QR codes, Barcodes & Numbers)</p>
           </div>
         </div>
 
@@ -568,7 +571,15 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           className="hidden"
         />
 
-        {showCamera ? (
+        {isScanningImage ? (
+          <div className="border-2 border-dashed border-gold-border bg-gold-light/20 rounded-2xl p-8 text-center space-y-4 animate-pulse">
+            <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto" />
+            <div>
+              <p className="text-gold-dark font-body font-extrabold text-sm">Scanning Ticket Photo...</p>
+              <p className="text-text-secondary text-xs font-body mt-1">{scanStatus || "Analyzing barcode, QR code, and ticket numbers"}</p>
+            </div>
+          </div>
+        ) : showCamera ? (
           <div className="space-y-3">
             <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
               <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
@@ -592,8 +603,8 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           <div className="border-2 border-dashed border-gold-border bg-gold-light/10 rounded-2xl p-6 text-center space-y-4">
             <div className="text-4xl text-gold-dark">📷</div>
             <div>
-              <p className="text-gold-dark font-body font-semibold text-sm">Scan QR Code from Ticket</p>
-              <p className="text-text-secondary text-xs font-body mt-1">Open your camera or choose a ticket photo from device</p>
+              <p className="text-gold-dark font-body font-semibold text-sm">Scan QR Code or Upload Photo</p>
+              <p className="text-text-secondary text-xs font-body mt-1">Supports QR code, 1D barcode, and printed ticket photos</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button onClick={() => setShowCamera(true)} size="sm" className="flex items-center justify-center gap-2">
