@@ -71,6 +71,7 @@ const createTables = async () => {
       email VARCHAR,
       phone VARCHAR,
       counter_name VARCHAR,
+      commission_rate DOUBLE,
       status VARCHAR,
       created_at TIMESTAMP
     );
@@ -94,11 +95,28 @@ const createTables = async () => {
     );
   `;
 
+  const createDailyOrdersTable = `
+    CREATE TABLE IF NOT EXISTS daily_orders (
+      id VARCHAR,
+      agent_id VARCHAR,
+      order_date TIMESTAMP,
+      employee_id VARCHAR,
+      employee_name VARCHAR,
+      lottery_name VARCHAR,
+      board VARCHAR,
+      ordered_qty INT,
+      returned_qty INT,
+      commission_rate DOUBLE,
+      created_at TIMESTAMP
+    );
+  `;
+
   await pool.query(createUsersTable);
   await pool.query(createDrawsTable);
   await pool.query(createLivePrizesTable);
   await pool.query(createEmployeesTable);
   await pool.query(createWinningClaimsTable);
+  await pool.query(createDailyOrdersTable);
 };
 
 const initDB = async (retries = 5, delayMs = 3000) => {

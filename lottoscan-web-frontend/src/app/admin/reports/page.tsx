@@ -195,6 +195,15 @@ export default function DailyReportsPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link href="/admin/orders">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-amber-300 bg-amber-50 text-amber-900 font-bold text-xs shadow-sm hover:bg-amber-100"
+              >
+                📦 Daily Order Sheet
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

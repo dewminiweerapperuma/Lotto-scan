@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Claim = require('../models/Claim');
 const Employee = require('../models/Employee');
+const Order = require('../models/Order');
 
 // @route   GET /api/agent/reports/daily
 // @desc    Get aggregated daily winning summary report by date
@@ -19,6 +20,52 @@ router.get('/reports/daily', async (req, res) => {
   } catch (error) {
     console.error('Daily report error:', error);
     return res.status(500).json({ message: 'Server error generating daily report.', error: error.message });
+  }
+});
+
+// @route   GET /api/agent/orders
+// @desc    Get 2D daily employee lottery order allocation matrix & commission summary
+// @access  Public (or Agent/Admin)
+router.get('/orders', async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const agentId = req.query.agentId || 'default-agent';
+
+    const matrixData = await Order.getDailyOrderMatrix(date, agentId);
+    return res.status(200).json({
+      success: true,
+      data: matrixData
+    });
+  } catch (error) {
+    console.error('Get daily orders error:', error);
+    return res.status(500).json({ message: 'Server error retrieving daily order matrix.', error: error.message });
+  }
+});
+
+// @route   POST /api/agent/orders
+// @desc    Save/update daily order quantities, returns, and custom commission rates
+// @access  Public (or Agent/Admin)
+router.post('/orders', async (req, res) => {
+  try {
+    const { date, agentId, matrix, returns, employeeCommissionRates } = req.body;
+    const dateStr = date || new Date().toISOString().slice(0, 10);
+
+    const savedMatrix = await Order.saveDailyOrders({
+      dateStr,
+      agentId: agentId || 'default-agent',
+      matrix: matrix || {},
+      returns: returns || {},
+      employeeCommissionRates: employeeCommissionRates || {}
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Daily order sheet and commissions saved successfully.',
+      data: savedMatrix
+    });
+  } catch (error) {
+    console.error('Save daily orders error:', error);
+    return res.status(500).json({ message: 'Server error saving daily orders.', error: error.message });
   }
 });
 
@@ -109,11 +156,11 @@ router.get('/employees', async (req, res) => {
 });
 
 // @route   POST /api/agent/employees
-// @desc    Add a new employee / counter to the agency
+// @desc    Add a new employee / counter to the agency with commission rate
 // @access  Public (or Agent/Admin)
 router.post('/employees', async (req, res) => {
   try {
-    const { agentId, name, email, phone, counterName, status } = req.body;
+    const { agentId, name, email, phone, counterName, commissionRate, status } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Employee name is required.' });
@@ -125,6 +172,7 @@ router.post('/employees', async (req, res) => {
       email,
       phone,
       counterName,
+      commissionRate: commissionRate !== undefined ? parseFloat(commissionRate) : 2.5,
       status
     });
 
@@ -140,3 +188,4 @@ router.post('/employees', async (req, res) => {
 });
 
 module.exports = router;
+

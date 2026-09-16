@@ -68,6 +68,9 @@ const startServer = async () => {
 
     const Claim = require('./models/Claim');
     await Claim.seedSampleClaims();
+
+    const Order = require('./models/Order');
+    await Order.seedSampleOrders();
   } catch (err) {
     console.warn('[Auth/Seed] Startup seed notice:', err.message);
   }
