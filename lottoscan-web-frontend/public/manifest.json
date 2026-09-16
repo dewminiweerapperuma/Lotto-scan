@@ -1,13 +1,67 @@
 {
-  "name": "LottoScan",
+  "name": "LottoScan — Sri Lanka Lottery Checker",
   "short_name": "LottoScan",
-  "description": "Sri Lankan Lottery Ticket Checker",
+  "description": "Instant Sri Lanka Lottery Ticket Checker & Counter Bulk Scanner for NLB and DLB draws",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#0A0A0F",
-  "theme_color": "#F5C518",
+  "orientation": "portrait-primary",
+  "background_color": "#0F172A",
+  "theme_color": "#F59E0B",
+  "categories": ["utilities", "finance", "business"],
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/maskable-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "⚡ Bulk Scanner",
+      "short_name": "Bulk Scan",
+      "description": "Scan and evaluate batches of tickets rapidly",
+      "url": "/scan",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "🔍 Check Ticket",
+      "short_name": "Check",
+      "description": "Check your individual lottery ticket numbers",
+      "url": "/check",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "📦 Daily Orders",
+      "short_name": "Orders",
+      "description": "Daily employee ticket allocation matrix",
+      "url": "/admin/orders",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "📊 Winning Reports",
+      "short_name": "Reports",
+      "description": "Daily board-wise winning payout summaries",
+      "url": "/admin/reports",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

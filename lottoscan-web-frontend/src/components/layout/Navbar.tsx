@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageToggle from "@/components/ui/LanguageToggle";
+import InstallButton from "@/components/pwa/InstallButton";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -48,6 +49,7 @@ export default function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-3">
+            <InstallButton />
             <LanguageToggle />
             <a
               href="https://lklottery.com/pdf/"
@@ -96,6 +98,9 @@ export default function Navbar() {
               </Link>
             ))}
             <div className="pt-2 border-t border-border-default space-y-2">
+              <div className="flex justify-center pb-1">
+                <InstallButton className="w-full justify-center py-2" />
+              </div>
               <a
                 href="https://lklottery.com/pdf/"
                 target="_blank"
