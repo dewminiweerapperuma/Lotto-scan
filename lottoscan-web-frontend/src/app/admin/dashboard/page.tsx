@@ -102,11 +102,9 @@ export default function DashboardPage() {
 
       <div className="container">
         {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
           {[
-            { label: "Results Today", value: resultsToday, icon: "📊", iconColor: "text-gold" },
             { label: "Ticket Checks", value: stats?.checks_count || 142, icon: "🔍", iconColor: "text-blue-500" },
-            { label: "Winners Today", value: stats?.winners_count || 8, icon: "🏆", iconColor: "text-win" },
             { 
               label: "Scrape Status", 
               value: logs[0]?.status === "success" ? "Active" : "Issues", 
