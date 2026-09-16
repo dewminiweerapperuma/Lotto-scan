@@ -440,7 +440,7 @@ export default function DailyReportsPage() {
                     <tfoot>
                       <tr className="bg-amber-50/70 font-bold text-text-primary border-t-2 border-amber-200">
                         <td className="py-3.5 px-5 uppercase text-xs text-amber-900">
-                          DLB Total Subtotal <span className="normal-case font-normal text-[11px] text-amber-800/80 ml-2">(10% Comm: <strong>Rs. {Number(dlbData.estimatedCommission).toLocaleString()}</strong>)</span>:
+                          DLB Total Subtotal:
                         </td>
                         <td className="py-3.5 px-5 text-center font-mono text-sm text-amber-900">
                           {dlbData.totalTickets} Tickets
@@ -511,7 +511,7 @@ export default function DailyReportsPage() {
                     <tfoot>
                       <tr className="bg-blue-50/70 font-bold text-text-primary border-t-2 border-blue-200">
                         <td className="py-3.5 px-5 uppercase text-xs text-blue-900">
-                          NLB Total Subtotal <span className="normal-case font-normal text-[11px] text-blue-800/80 ml-2">(10% Comm: <strong>Rs. {Number(nlbData.estimatedCommission).toLocaleString()}</strong>)</span>:
+                          NLB Total Subtotal:
                         </td>
                         <td className="py-3.5 px-5 text-center font-mono text-sm text-blue-900">
                           {nlbData.totalTickets} Tickets
