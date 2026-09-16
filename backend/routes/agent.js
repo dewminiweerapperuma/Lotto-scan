@@ -187,5 +187,26 @@ router.post('/employees', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/agent/employees/:id
+// @desc    Delete / deactivate an employee
+// @access  Public (or Agent/Admin)
+router.delete('/employees/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ message: 'Employee ID is required.' });
+    }
+
+    await Employee.delete(id);
+    return res.status(200).json({
+      success: true,
+      message: 'Employee removed successfully.'
+    });
+  } catch (error) {
+    console.error('Delete employee error:', error);
+    return res.status(500).json({ message: 'Server error deleting employee.', error: error.message });
+  }
+});
+
 module.exports = router;
 

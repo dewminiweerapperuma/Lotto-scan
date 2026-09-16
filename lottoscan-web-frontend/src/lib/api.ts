@@ -55,6 +55,7 @@ export const agent = {
   getEmployees: (agentId?: string) =>
     apiClient.get(`/agent/employees?agentId=${agentId || "default-agent"}`),
   createEmployee: (data: any) => apiClient.post("/agent/employees", data),
+  deleteEmployee: (id: string) => apiClient.delete(`/agent/employees/${id}`),
   getDailyOrders: (date?: string, agentId?: string) =>
     apiClient.get(`/agent/orders?date=${date || ""}&agentId=${agentId || "default-agent"}`),
   saveDailyOrders: (data: any) => apiClient.post("/agent/orders", data),

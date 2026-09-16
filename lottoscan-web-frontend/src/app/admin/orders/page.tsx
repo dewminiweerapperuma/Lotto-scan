@@ -42,6 +42,10 @@ export default function DailyOrdersPage() {
 
   // Add Employee Modal State
   const [isEmpModalOpen, setIsEmpModalOpen] = useState(false);
+  const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [deleteTargetEmp, setDeleteTargetEmp] = useState<Employee | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [empForm, setEmpForm] = useState({
     name: "",
     phone: "",
@@ -147,10 +151,53 @@ export default function DailyOrdersPage() {
       setIsEmpModalOpen(false);
       setEmpForm({ name: "", phone: "", email: "", counterName: "Route Seller", commissionRate: "2.5" });
       await loadDailyOrders(selectedDate);
+      setSaveStatusMsg({ type: "success", text: `Seller "${empForm.name}" added successfully.` });
+      setTimeout(() => setSaveStatusMsg(null), 4000);
     } catch (err: any) {
       setEmpError(err.response?.data?.message || "Failed to register employee");
     } finally {
       setEmpSubmitting(false);
+    }
+  };
+
+  // Delete employee handler
+  const handleDeleteEmployee = async () => {
+    if (!deleteTargetEmp) return;
+    setDeleteLoading(true);
+    try {
+      await agentApi.deleteEmployee(deleteTargetEmp.id);
+      const targetName = deleteTargetEmp.name;
+      const targetId = deleteTargetEmp.id;
+
+      // Update local state without full reload
+      setEmployees(prev => prev.filter(e => e.id !== targetId));
+      setMatrix(prev => {
+        const nextMatrix: Record<string, Record<string, number>> = {};
+        Object.keys(prev).forEach(lot => {
+          const row = { ...prev[lot] };
+          delete row[targetId];
+          nextMatrix[lot] = row;
+        });
+        return nextMatrix;
+      });
+      setReturns(prev => {
+        const nextRet = { ...prev };
+        delete nextRet[targetId];
+        return nextRet;
+      });
+      setCommissionRates(prev => {
+        const nextRates = { ...prev };
+        delete nextRates[targetId];
+        return nextRates;
+      });
+
+      setSaveStatusMsg({ type: "success", text: `Employee "${targetName}" removed successfully.` });
+      setTimeout(() => setSaveStatusMsg(null), 4000);
+      setDeleteTargetEmp(null);
+    } catch (err: any) {
+      setSaveStatusMsg({ type: "error", text: err.response?.data?.message || "Failed to delete employee." });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -261,10 +308,18 @@ export default function DailyOrdersPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setIsManageModalOpen(true)}
+              className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-red-400 hover:text-red-700"
+            >
+              👥 Manage / Delete Sellers ({employees.length})
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setIsEmpModalOpen(true)}
               className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-gold"
             >
-              ➕ Add Employee / Seller
+              ➕ Add Seller
             </Button>
             <Button
               variant="primary"
@@ -453,8 +508,16 @@ export default function DailyOrdersPage() {
                       return (
                         <th
                           key={emp.id}
-                          className="border border-gray-300 p-2 text-center min-w-[95px] max-w-[120px] bg-amber-300/80 hover:bg-amber-300 transition-colors"
+                          className="relative group border border-gray-300 p-2 text-center min-w-[100px] max-w-[130px] bg-amber-300/80 hover:bg-amber-300 transition-colors"
                         >
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTargetEmp(emp)}
+                            title={`Remove ${emp.name}`}
+                            className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-600 hover:bg-red-700 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] shadow cursor-pointer"
+                          >
+                            ✕
+                          </button>
                           <div className="font-extrabold text-xs truncate text-gray-950" title={emp.name}>
                             {emp.name}
                           </div>
@@ -772,6 +835,137 @@ export default function DailyOrdersPage() {
                 </Button>
               </div>
             </form>
+          </Card>
+        </div>
+      )}
+
+      {/* ─── Manage Sellers Modal (List & Delete) ─── */}
+      {isManageModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="bg-white max-w-2xl w-full p-6 border border-border-default shadow-2xl relative animate-in fade-in zoom-in duration-200 max-h-[85vh] flex flex-col">
+            <button
+              onClick={() => setIsManageModalOpen(false)}
+              className="absolute top-4 right-4 text-text-muted hover:text-text-primary text-lg"
+            >
+              ✕
+            </button>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-display font-extrabold text-text-primary">
+                Manage Active Sellers ({employees.length})
+              </h3>
+            </div>
+            <p className="text-xs text-text-secondary font-body mb-4">
+              View all registered sellers, their assigned commission rates, or remove sellers who no longer work with the agency.
+            </p>
+
+            <div className="overflow-y-auto flex-1 divide-y divide-gray-100 border border-border-default rounded-xl mb-4 text-xs font-body">
+              {employees.length === 0 ? (
+                <div className="p-8 text-center text-text-muted text-xs">
+                  No sellers registered yet.
+                </div>
+              ) : (
+                employees.map((emp) => {
+                  const rate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
+                  return (
+                    <div
+                      key={emp.id}
+                      className="p-3.5 flex items-center justify-between gap-3 hover:bg-brand-card-hover transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-900 border border-amber-300 font-extrabold flex items-center justify-center text-xs">
+                          👤
+                        </div>
+                        <div>
+                          <p className="font-extrabold text-text-primary text-sm">
+                            {emp.name}
+                          </p>
+                          <p className="text-text-secondary text-[11px]">
+                            {emp.counterName || "Route Seller"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-md font-mono font-bold text-xs">
+                          Rs. {rate.toFixed(2)}/tkt
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteTargetEmp(emp);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setIsManageModalOpen(false);
+                  setIsEmpModalOpen(true);
+                }}
+                className="text-xs font-bold border-gold-border text-gold-dark bg-gold-light"
+              >
+                ➕ Add New Seller
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsManageModalOpen(false)}
+                className="text-xs font-bold"
+              >
+                Close
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ─── Delete Confirmation Modal ─── */}
+      {deleteTargetEmp && (
+        <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-4">
+          <Card className="bg-white max-w-md w-full p-6 border border-red-200 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <div className="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mb-4 mx-auto">
+              ⚠️
+            </div>
+            <h3 className="text-lg font-display font-extrabold text-text-primary text-center mb-1">
+              Delete Employee / Seller?
+            </h3>
+            <p className="text-xs text-text-secondary font-body text-center mb-5">
+              Are you sure you want to remove <strong className="text-text-primary">{deleteTargetEmp.name}</strong> ({deleteTargetEmp.counterName})? This will exclude them from the daily order allocation sheet.
+            </p>
+
+            <div className="flex gap-3 justify-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                type="button"
+                disabled={deleteLoading}
+                onClick={() => setDeleteTargetEmp(null)}
+                className="w-full text-xs font-bold border border-border-default"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                type="button"
+                loading={deleteLoading}
+                onClick={handleDeleteEmployee}
+                className="w-full text-xs font-bold bg-red-600 hover:bg-red-700 text-white"
+              >
+                🗑️ Confirm Delete
+              </Button>
+            </div>
           </Card>
         </div>
       )}

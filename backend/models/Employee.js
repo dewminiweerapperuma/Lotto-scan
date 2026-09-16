@@ -36,17 +36,25 @@ class Employee {
     q += ' ORDER BY created_at ASC';
 
     const res = await db.query(q, params);
-    return res.rows.map(r => ({
-      id: r.id,
-      agentId: r.agent_id,
-      name: r.name,
-      email: r.email,
-      phone: r.phone,
-      counterName: r.counter_name,
-      commissionRate: parseFloat(r.commission_rate) || 2.5,
-      status: r.status,
-      createdAt: r.created_at
-    }));
+    return res.rows
+      .filter(r => r.status !== 'deleted' && r.status !== 'inactive')
+      .map(r => ({
+        id: r.id,
+        agentId: r.agent_id,
+        name: r.name,
+        email: r.email,
+        phone: r.phone,
+        counterName: r.counter_name,
+        commissionRate: parseFloat(r.commission_rate) || 2.5,
+        status: r.status,
+        createdAt: r.created_at
+      }));
+  }
+
+  static async delete(id) {
+    if (!id) return false;
+    await db.query(`UPDATE employees SET status = 'deleted' WHERE id = $1`, [id]);
+    return true;
   }
 
   static async seedSampleEmployees(agentId = 'default-agent') {
