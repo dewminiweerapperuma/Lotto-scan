@@ -297,73 +297,65 @@ const isMatchingLetterOrZodiac = (userVal, drawVal) => {
   return false;
 };
 
-// @route   POST /api/lottery/check-ticket-numbers
-// @desc    Check ticket numbers against scraped lottery draws (used by frontend)
-// @access  Public
-router.post('/check-ticket-numbers', async (req, res) => {
-  try {
-    const { ticket_numbers, draw_date, lottery_name, letter } = req.body;
+const evaluateSingleTicket = async (ticketData, livePrizes) => {
+  const { ticket_numbers, draw_date, lottery_name, letter, ticket_serial } = ticketData || {};
 
-    if (!ticket_numbers || !Array.isArray(ticket_numbers) || ticket_numbers.length === 0) {
-      return res.status(400).json({ error: 'Please provide ticket_numbers as a non-empty array.' });
-    }
+  if (!ticket_numbers || !Array.isArray(ticket_numbers) || ticket_numbers.length === 0) {
+    return { error: 'Please provide ticket_numbers as a non-empty array.' };
+  }
 
-    let ticketNums = ticket_numbers.map(Number).filter(n => !isNaN(n) && n >= 0);
+  let ticketNums = ticket_numbers.map(Number).filter(n => !isNaN(n) && n >= 0);
 
-    // If user provided a single multi-digit number (e.g. 6602) into a single input box
-    if (ticketNums.length === 1 && ticketNums[0] >= 100) {
-      const s = String(ticketNums[0]);
-      ticketNums = s.split('').map(Number);
-    }
+  // If user provided a single multi-digit number (e.g. 6602) into a single input box
+  if (ticketNums.length === 1 && ticketNums[0] >= 100) {
+    const s = String(ticketNums[0]);
+    ticketNums = s.split('').map(Number);
+  }
 
-    if (ticketNums.length === 0) {
-      return res.status(400).json({ error: 'No valid numbers provided.' });
-    }
+  if (ticketNums.length === 0) {
+    return { error: 'No valid numbers provided.' };
+  }
 
-    // 1. Try to get lottery data from in-memory scraped prizes
-    const livePrizes = await scraper.getLivePrizes();
+  // 1. Filter candidates by lottery name if specified
+  let candidates = livePrizes || [];
+  if (lottery_name) {
+    const filtered = candidates.filter(p =>
+      p.name && p.name.toLowerCase().includes(lottery_name.toLowerCase())
+    );
+    if (filtered.length > 0) candidates = filtered;
+  }
 
-    // 2. Filter by lottery name if specified
-    let candidates = livePrizes;
-    if (lottery_name) {
-      const filtered = livePrizes.filter(p =>
-        p.name && p.name.toLowerCase().includes(lottery_name.toLowerCase())
-      );
-      if (filtered.length > 0) candidates = filtered;
-    }
+  // 2. Find best match across candidate lotteries
+  let bestResult = null;
+  let bestMatchCount = -1;
 
-    // 3. Find best match across all candidate lotteries
-    let bestResult = null;
-    let bestMatchCount = -1;
+  for (const lottery of candidates) {
+    if (!lottery.winningNumbers || lottery.winningNumbers.length === 0) continue;
 
-    for (const lottery of candidates) {
-      if (!lottery.winningNumbers || lottery.winningNumbers.length === 0) continue;
+    const winNums = lottery.winningNumbers.map(Number).filter(n => !isNaN(n));
+    if (winNums.length === 0) continue;
 
-      const winNums = lottery.winningNumbers.map(Number).filter(n => !isNaN(n));
-      if (winNums.length === 0) continue;
+    const matched = ticketNums.filter(n => winNums.includes(n));
+    const matchCount = matched.length;
 
-      const matched = ticketNums.filter(n => winNums.includes(n));
-      const matchCount = matched.length;
+    const lotteryKey = (lottery.name || '').toLowerCase();
+    const matchedLetter = isMatchingLetterOrZodiac(letter, lottery.letter);
 
-      const lotteryKey = (lottery.name || '').toLowerCase();
-      const matchedLetter = isMatchingLetterOrZodiac(letter, lottery.letter);
+    const isBetterMatch =
+      !bestResult ||
+      matchCount > bestMatchCount ||
+      (matchCount === bestMatchCount && matchedLetter && !bestResult.matchedLetter);
 
-      const isBetterMatch =
-        !bestResult ||
-        matchCount > bestMatchCount ||
-        (matchCount === bestMatchCount && matchedLetter && !bestResult.matchedLetter);
+    if (isBetterMatch) {
+      bestMatchCount = matchCount;
+      const totalWinNums = winNums.length;
 
-      // Check if this is a better match than what we have
-      if (isBetterMatch) {
-        bestMatchCount = matchCount;
-        const totalWinNums = winNums.length;
+      const formatRs = (amount) => `Rs. ${Number(amount).toLocaleString('en-LK')}.00`;
 
-        const formatRs = (amount) => `Rs. ${Number(amount).toLocaleString('en-LK')}.00`;
-
-        let isWinner = false;
-        let prizeCategory = null;
-        let prizeAmount = 0;
-        let prizeAmountFormatted = null;
+      let isWinner = false;
+      let prizeCategory = null;
+      let prizeAmount = 0;
+      let prizeAmountFormatted = null;
 
         // Special official handling for Govisetha
         if (lotteryKey.includes('govisetha')) {
@@ -1273,6 +1265,8 @@ router.post('/check-ticket-numbers', async (req, res) => {
 
         bestResult = {
           isWinner,
+          board: lottery.board || (lottery.name?.toLowerCase().includes('nlb') ? 'NLB' : 'DLB'),
+          cleanLotteryName: lottery.name || 'Lottery',
           ticketNumbers: ticketNums,
           winningNumbers: winNums,
           matchedNumbers: matched,
@@ -1282,7 +1276,7 @@ router.post('/check-ticket-numbers', async (req, res) => {
           lotteryName: `${lottery.board || ''} ${lottery.name || ''}`.trim(),
           drawNumber: lottery.drawNumber || '',
           drawDate: draw_date || new Date().toISOString().slice(0, 10),
-          prizeAmount: prizeAmount,
+          prizeAmount: typeof prizeAmount === 'number' ? prizeAmount : (parseFloat(String(prizeAmount).replace(/[^0-9.]/g, '')) || 0),
           prizeAmountFormatted: prizeAmountFormatted,
           prizeCategory: prizeCategory,
           letter: lottery.letter || '',
@@ -1295,22 +1289,95 @@ router.post('/check-ticket-numbers', async (req, res) => {
     }
 
     if (!bestResult) {
-      return res.status(200).json({
+      return {
         isWinner: false,
+        board: lottery_name?.toLowerCase().includes('nlb') ? 'NLB' : 'DLB',
+        cleanLotteryName: lottery_name || 'Unknown',
         ticketNumbers: ticketNums,
         winningNumbers: [],
         matchedNumbers: [],
         matchedCount: 0,
+        prizeAmount: 0,
+        prizeAmountFormatted: 'Rs. 0.00',
         lotteryName: lottery_name || 'Unknown',
         drawDate: draw_date || new Date().toISOString().slice(0, 10),
         message: 'No lottery draw data available to check against. Please try again later.',
-      });
+      };
     }
 
-    return res.status(200).json(bestResult);
+    return bestResult;
+};
+
+// @route   POST /api/lottery/check-ticket-numbers
+// @desc    Check ticket numbers against scraped lottery draws (used by frontend single checker)
+// @access  Public
+router.post('/check-ticket-numbers', async (req, res) => {
+  try {
+    const livePrizes = await scraper.getLivePrizes();
+    const result = await evaluateSingleTicket(req.body, livePrizes);
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    return res.status(200).json(result);
   } catch (error) {
     console.error('Check ticket numbers error:', error);
     return res.status(500).json({ error: 'Server error while checking ticket numbers.' });
+  }
+});
+
+// @route   POST /api/lottery/batch-check
+// @desc    Check a batch of scanned tickets in parallel
+// @access  Public
+router.post('/batch-check', async (req, res) => {
+  try {
+    const { tickets } = req.body;
+    if (!tickets || !Array.isArray(tickets)) {
+      return res.status(400).json({ error: 'Please provide tickets as an array.' });
+    }
+
+    const livePrizes = await scraper.getLivePrizes();
+    const evaluatedResults = [];
+    let totalWinners = 0;
+    let totalPrize = 0;
+    const boardBreakdown = {
+      NLB: { count: 0, winners: 0, totalPrize: 0 },
+      DLB: { count: 0, winners: 0, totalPrize: 0 }
+    };
+
+    for (let i = 0; i < tickets.length; i++) {
+      const t = tickets[i];
+      const evalRes = await evaluateSingleTicket(t, livePrizes);
+      evalRes.id = t.id || `tkt-${i + 1}-${Date.now()}`;
+      evalRes.ticketSerial = t.ticket_serial || t.serial || `TCK-${String(i + 1).padStart(4, '0')}`;
+      
+      const b = evalRes.board || 'NLB';
+      if (!boardBreakdown[b]) {
+        boardBreakdown[b] = { count: 0, winners: 0, totalPrize: 0 };
+      }
+      boardBreakdown[b].count++;
+      if (evalRes.isWinner) {
+        totalWinners++;
+        const pVal = Number(evalRes.prizeAmount) || 0;
+        totalPrize += pVal;
+        boardBreakdown[b].winners++;
+        boardBreakdown[b].totalPrize += pVal;
+      }
+      evaluatedResults.push(evalRes);
+    }
+
+    return res.status(200).json({
+      success: true,
+      summary: {
+        totalChecked: tickets.length,
+        totalWinners,
+        totalPrize,
+        boardBreakdown
+      },
+      results: evaluatedResults
+    });
+  } catch (error) {
+    console.error('Batch check error:', error);
+    return res.status(500).json({ error: 'Server error during batch ticket check.' });
   }
 });
 

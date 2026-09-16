@@ -189,62 +189,77 @@ export default function DashboardPage() {
             </Card>
 
             {/* Quick Action Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+              <Link href="/scan" className="block">
+                <Card hover className="flex items-center gap-2.5 p-3.5 h-full border-2 border-emerald-300 hover:border-emerald-500 bg-emerald-50/40 shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-300 flex items-center justify-center text-lg shrink-0">
+                    ⚡
+                  </div>
+                  <div>
+                    <p className="text-text-primary font-body font-bold text-xs sm:text-sm leading-snug">
+                      Bulk Scanner
+                    </p>
+                    <p className="text-text-secondary text-[10px] font-body mt-0.5">
+                      Multi-ticket auto scanner
+                    </p>
+                  </div>
+                </Card>
+              </Link>
               <Link href="/admin/orders" className="block">
-                <Card hover className="flex items-center gap-3 p-4 h-full border-2 border-amber-300 hover:border-gold bg-amber-50/40 shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-xl shrink-0">
+                <Card hover className="flex items-center gap-2.5 p-3.5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 border border-amber-300 flex items-center justify-center text-lg shrink-0">
                     📦
                   </div>
                   <div>
-                    <p className="text-text-primary font-body font-bold text-sm leading-snug">
-                      Daily Orders Sheet
+                    <p className="text-text-primary font-body font-bold text-xs sm:text-sm leading-snug">
+                      Daily Orders
                     </p>
-                    <p className="text-text-secondary text-[11px] font-body mt-0.5">
-                      Seller allocations & commissions
+                    <p className="text-text-secondary text-[10px] font-body mt-0.5">
+                      Seller allocations & rates
                     </p>
                   </div>
                 </Card>
               </Link>
               <Link href="/admin/reports" className="block">
-                <Card hover className="flex items-center gap-3 p-4 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
+                <Card hover className="flex items-center gap-2.5 p-3.5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-lg shrink-0">
                     📊
                   </div>
                   <div>
-                    <p className="text-text-primary font-body font-bold text-sm leading-snug">
-                      Daily Winning Report
+                    <p className="text-text-primary font-body font-bold text-xs sm:text-sm leading-snug">
+                      Winning Report
                     </p>
-                    <p className="text-text-secondary text-[11px] font-body mt-0.5">
-                      Board-wise payout summary
+                    <p className="text-text-secondary text-[10px] font-body mt-0.5">
+                      Board-wise summaries
                     </p>
                   </div>
                 </Card>
               </Link>
               <Link href="/admin/upload" className="block">
-                <Card hover className="flex items-center gap-3 p-4 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-xl shrink-0">
+                <Card hover className="flex items-center gap-2.5 p-3.5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-lg shrink-0">
                     📤
                   </div>
                   <div>
-                    <p className="text-text-primary font-body font-bold text-sm leading-snug">
+                    <p className="text-text-primary font-body font-bold text-xs sm:text-sm leading-snug">
                       Upload PDF
                     </p>
-                    <p className="text-text-secondary text-[11px] font-body mt-0.5">
+                    <p className="text-text-secondary text-[10px] font-body mt-0.5">
                       Manual draw sheets
                     </p>
                   </div>
                 </Card>
               </Link>
               <Link href="/admin/logs" className="block">
-                <Card hover className="flex items-center gap-3 p-4 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
+                <Card hover className="flex items-center gap-2.5 p-3.5 h-full border border-border-default hover:border-gold-border bg-white shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-lg shrink-0">
                     📋
                   </div>
                   <div>
-                    <p className="text-text-primary font-body font-bold text-sm leading-snug">
+                    <p className="text-text-primary font-body font-bold text-xs sm:text-sm leading-snug">
                       Scrape Logs
                     </p>
-                    <p className="text-text-secondary text-[11px] font-body mt-0.5">
+                    <p className="text-text-secondary text-[10px] font-body mt-0.5">
                       Automated scraping status
                     </p>
                   </div>

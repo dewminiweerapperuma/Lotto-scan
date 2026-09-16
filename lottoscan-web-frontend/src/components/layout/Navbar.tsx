@@ -16,6 +16,7 @@ export default function Navbar() {
     { href: "/", label: t("nav_home") },
     { href: "/results", label: t("nav_results") },
     { href: "/check", label: t("nav_check") },
+    { href: "/scan", label: "⚡ Bulk Scan" },
     { href: "/about", label: t("nav_about") },
   ];
 

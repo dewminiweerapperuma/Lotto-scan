@@ -195,6 +195,15 @@ export default function DailyReportsPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <Link href="/scan">
+              <Button
+                variant="primary"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm px-3.5"
+              >
+                ⚡ Bulk Scanner
+              </Button>
+            </Link>
             <Link href="/admin/orders">
               <Button
                 variant="outline"

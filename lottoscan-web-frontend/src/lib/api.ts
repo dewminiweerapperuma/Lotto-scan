@@ -38,6 +38,7 @@ export const lottery = {
   getScrapeLogs: (limit = 30) => apiClient.get(`/lottery/scrape-logs?limit=${limit}`),
   getStatistics: (from?: string, to?: string) => apiClient.get(`/lottery/statistics${from ? `?from=${from}&to=${to}` : ""}`),
   getPrizes: (lotteryName?: string) => apiClient.get(`/lottery/prizes${lotteryName ? `?lottery_name=${lotteryName}` : ""}`),
+  batchCheckTickets: (tickets: any[]) => apiClient.post("/lottery/batch-check", { tickets }),
 };
 
 export const auth = {
