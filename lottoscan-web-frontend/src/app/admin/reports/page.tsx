@@ -21,6 +21,10 @@ export default function DailyReportsPage() {
 
   const [reportData, setReportData] = useState<any>(null);
   const [employees, setEmployees] = useState<any[]>([]);
+  const [ordersMetrics, setOrdersMetrics] = useState({
+    totalCommission: 0,
+    activeStaff: 0
+  });
   const [dataLoading, setDataLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"boards" | "counters" | "claims">("boards");
 
@@ -59,12 +63,40 @@ export default function DailyReportsPage() {
   const loadReport = useCallback(async (date: string) => {
     setDataLoading(true);
     try {
-      const [repRes, empRes] = await Promise.all([
+      const [repRes, empRes, ordersRes] = await Promise.all([
         agentApi.getDailyReport(date),
-        agentApi.getEmployees()
+        agentApi.getEmployees(),
+        agentApi.getDailyOrders(date)
       ]);
       setReportData(repRes.data?.data || null);
-      setEmployees(empRes.data?.data || []);
+      const emps = empRes.data?.data || [];
+      setEmployees(emps);
+
+      const orderData = ordersRes.data?.data;
+      if (orderData) {
+        const oLotteries = orderData.lotteries || [];
+        const oEmps = orderData.employees || [];
+        const oMatrix = orderData.matrix || {};
+        const oReturns = orderData.returns || {};
+        const oRates = orderData.employeeCommissionRates || {};
+
+        let commSum = 0;
+        oEmps.forEach((emp: any) => {
+          let ordered = 0;
+          oLotteries.forEach((lot: any) => {
+            ordered += oMatrix[lot.name]?.[emp.id] || 0;
+          });
+          const ret = oReturns[emp.id] || 0;
+          const net = Math.max(0, ordered - ret);
+          const rate = oRates[emp.id] !== undefined ? oRates[emp.id] : emp.commissionRate || 2.5;
+          commSum += net * rate;
+        });
+
+        setOrdersMetrics({
+          totalCommission: commSum,
+          activeStaff: oEmps.length || emps.length
+        });
+      }
     } catch (err) {
       console.error("Error loading daily report:", err);
     } finally {
@@ -321,13 +353,13 @@ export default function DailyReportsPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Agency Commission (10%)
+                Agency Commission
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-gold-dark mt-1">
-                Rs. {Number(metrics.estimatedCommission || 0).toLocaleString()}
+                Rs. {ordersMetrics.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
               📈
             </div>
           </Card>
@@ -335,10 +367,10 @@ export default function DailyReportsPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Active Counters / Staff
+                Active Staff Members
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                {metrics.activeCounters} <span className="text-xs font-body font-semibold text-text-muted">Active</span>
+                {ordersMetrics.activeStaff || employees.length} <span className="text-xs font-body font-semibold text-text-muted">Sellers</span>
               </p>
             </div>
             <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
@@ -547,8 +579,8 @@ export default function DailyReportsPage() {
                     <span className="font-mono text-2xl font-extrabold text-win">Rs. {Number(metrics.totalPayout).toLocaleString()}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] uppercase font-bold text-text-secondary block">Total 10% Commission</span>
-                    <span className="font-mono text-xl font-extrabold text-gold-dark">Rs. {Number(metrics.estimatedCommission).toLocaleString()}</span>
+                    <span className="text-[10px] uppercase font-bold text-text-secondary block">Total Orders Commission</span>
+                    <span className="font-mono text-xl font-extrabold text-gold-dark">Rs. {ordersMetrics.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 </div>
               </div>
