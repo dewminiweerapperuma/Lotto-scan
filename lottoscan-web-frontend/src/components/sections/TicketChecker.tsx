@@ -19,6 +19,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const [letter, setLetter] = useState("");
   const [drawDate, setDrawDate] = useState(new Date().toISOString().slice(0, 10));
   const [lotteryName, setLotteryName] = useState("");
+  const config = getLotteryConfig(lotteryName);
   const [loading, setLoading] = useState(false);
   const [isScanningImage, setIsScanningImage] = useState(false);
   const [scanStatus, setScanStatus] = useState("");
@@ -150,10 +151,17 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const qr = jsQR(imageData.data, imageData.width, imageData.height);
     if (qr?.data) {
-      const { nums, letter: parsedLetter } = parseQRText(qr.data);
-      if (nums.length > 0) {
-        setNumbers(nums.map(String).concat(["", "", "", "", ""]).slice(0, 5));
-        if (parsedLetter) setLetter(parsedLetter);
+      const parsed = parseTicketText(qr.data);
+      if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac)) {
+        if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
+        if (parsed.drawDate) setDrawDate(parsed.drawDate);
+        const activeConfig = getLotteryConfig(parsed.lotteryName || lotteryName);
+        const targetCount = activeConfig.digitCount || 5;
+        const formattedNums = parsed.numbers.map(String);
+        while (formattedNums.length < targetCount) formattedNums.push("");
+        setNumbers(formattedNums.slice(0, targetCount));
+        if (parsed.zodiac) setLetter(parsed.zodiac);
+        else if (parsed.letter) setLetter(parsed.letter);
         stopCamera();
       } else {
         animRef.current = requestAnimationFrame(scanFrame);
@@ -161,7 +169,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     } else {
       animRef.current = requestAnimationFrame(scanFrame);
     }
-  }, [stopCamera, parseQRText]);
+  }, [stopCamera, lotteryName]);
 
   const startCamera = useCallback(async () => {
     setError("");
@@ -526,13 +534,19 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         try {
           const parsed = await scanTicketImage(img, (msg) => setScanStatus(msg));
 
-          if (parsed && (parsed.numbers.length > 0 || parsed.letter)) {
+          if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac)) {
+            const detectedLot = parsed.lotteryName || lotteryName;
             if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
-            const targetCount = config.digitCount || 5;
+            if (parsed.drawDate) setDrawDate(parsed.drawDate);
+
+            const activeConfig = getLotteryConfig(detectedLot);
+            const targetCount = activeConfig.digitCount || 5;
             const formattedNums = parsed.numbers.map(String);
             while (formattedNums.length < targetCount) formattedNums.push("");
             setNumbers(formattedNums.slice(0, targetCount));
-            if (parsed.letter) setLetter(parsed.letter);
+
+            if (parsed.zodiac) setLetter(parsed.zodiac);
+            else if (parsed.letter) setLetter(parsed.letter);
             setError("");
           } else {
             setError("No barcode, QR code, or readable ticket numbers found. Please ensure the ticket image is clear, unblurred, and well-lit, or enter numbers manually.");
