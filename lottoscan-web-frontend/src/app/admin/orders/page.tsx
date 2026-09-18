@@ -612,10 +612,10 @@ export default function DailyOrdersPage() {
 
                 {/* ── Table Footer: Calculations matching user's spreadsheet ── */}
                 <tfoot className="sticky bottom-0 z-20 font-mono font-bold text-xs shadow-md">
-                  {/* Row 1: Total Ordered per employee (එකතුව) */}
+                  {/* Row 1: Total Ordered per employee */}
                   <tr className="bg-amber-200 text-gray-950 border-t-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-200 border border-gray-300 p-2.5 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL ORDERED (එකතුව)
+                      TOTAL ORDERED
                     </td>
                     {employees.map((emp) => (
                       <td key={emp.id} className="border border-gray-300 p-2 text-center font-black text-sm">
@@ -627,10 +627,10 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 2: Unsold Returns (Return) - Bright Red Row like Excel */}
+                  {/* Row 2: Unsold Returns */}
                   <tr className="bg-red-600 text-white border-y border-red-700">
                     <td className="sticky left-0 z-30 bg-red-600 text-white border border-red-700 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      UNSOLD RETURNS (Return)
+                      UNSOLD RETURNS
                     </td>
                     {employees.map((emp) => {
                       const retVal = returns[emp.id] ?? 0;
@@ -653,10 +653,10 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 3: Net Sold (විකිණුම්) */}
+                  {/* Row 3: Net Sold */}
                   <tr className="bg-emerald-100 text-emerald-950 border-b border-emerald-300">
                     <td className="sticky left-0 z-30 bg-emerald-100 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      NET SOLD (විකිණුම්)
+                      NET SOLD
                     </td>
                     {employees.map((emp) => (
                       <td key={emp.id} className="border border-gray-300 p-2 text-center font-extrabold text-emerald-900">
@@ -696,7 +696,7 @@ export default function DailyOrdersPage() {
                   {/* Row 5: Seller Commission (Rs.) */}
                   <tr className="bg-emerald-50 text-emerald-950 border-b border-emerald-200">
                     <td className="sticky left-0 z-30 bg-emerald-50 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      COMMISSION (කොමිස් මුදල)
+                      SELLER COMMISSION (Rs.)
                     </td>
                     {employees.map((emp) => {
                       const comm = colTotals.commissionAmounts[emp.id] || 0;
@@ -714,7 +714,7 @@ export default function DailyOrdersPage() {
                   {/* Row 6: Total Payable (Value of Tickets @ Rs. 35) */}
                   <tr className="bg-amber-100 text-amber-950 border-t-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-100 border border-gray-300 p-2.5 font-black uppercase text-amber-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL PAYABLE (ටිකට්පත් වටිනාකම @ Rs. 35)
+                      TOTAL PAYABLE (@ Rs. 35)
                     </td>
                     {employees.map((emp) => {
                       const payable = colTotals.totalPayable[emp.id] || 0;
