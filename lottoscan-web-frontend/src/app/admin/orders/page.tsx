@@ -227,6 +227,7 @@ export default function DailyOrdersPage() {
     const totalOrdered: Record<string, number> = {};
     const netSold: Record<string, number> = {};
     const commissionAmounts: Record<string, number> = {};
+    const totalPayable: Record<string, number> = {};
 
     employees.forEach(emp => {
       let orderedSum = 0;
@@ -241,9 +242,10 @@ export default function DailyOrdersPage() {
 
       const rate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
       commissionAmounts[emp.id] = net * rate;
+      totalPayable[emp.id] = orderedSum * 35; // Total tickets of that person * 35
     });
 
-    return { totalOrdered, netSold, commissionAmounts };
+    return { totalOrdered, netSold, commissionAmounts, totalPayable };
   }, [lotteries, employees, matrix, returns, commissionRates]);
 
   // 3. Grand Totals
@@ -252,8 +254,9 @@ export default function DailyOrdersPage() {
     const totalReturns = Object.values(returns).reduce((a, b) => a + b, 0);
     const totalNetSold = Object.values(colTotals.netSold).reduce((a, b) => a + b, 0);
     const totalCommission = Object.values(colTotals.commissionAmounts).reduce((a, b) => a + b, 0);
+    const totalPayable = totalOrdered * 35; // Total tickets across all employees * 35
 
-    return { totalOrdered, totalReturns, totalNetSold, totalCommission };
+    return { totalOrdered, totalReturns, totalNetSold, totalCommission, totalPayable };
   }, [rowTotals, returns, colTotals]);
 
   const handlePrint = () => {
@@ -450,13 +453,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Commission Payable
+                Total Payable (Value @ Rs. 35)
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-gold-dark mt-1">
-                Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
+                Rs. {grandTotals.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
               💰
             </div>
           </Card>
@@ -690,21 +693,39 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 5: Total Commission Payable (Rs.) */}
-                  <tr className="bg-amber-100 text-amber-950 border-t-2 border-amber-400">
-                    <td className="sticky left-0 z-30 bg-amber-100 border border-gray-300 p-2.5 font-black uppercase text-amber-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      COMMISSION PAYABLE (Rs.)
+                  {/* Row 5: Seller Commission (Rs.) */}
+                  <tr className="bg-emerald-50 text-emerald-950 border-b border-emerald-200">
+                    <td className="sticky left-0 z-30 bg-emerald-50 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      COMMISSION (කොමිස් මුදල)
                     </td>
                     {employees.map((emp) => {
                       const comm = colTotals.commissionAmounts[emp.id] || 0;
                       return (
-                        <td key={emp.id} className="border border-gray-300 p-2 text-center font-black text-win">
+                        <td key={emp.id} className="border border-gray-300 p-2 text-center font-bold text-emerald-800">
                           Rs. {comm.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
                         </td>
                       );
                     })}
-                    <td className="sticky right-0 z-30 bg-amber-300 text-amber-950 border border-amber-500 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                    <td className="sticky right-0 z-30 bg-emerald-200 text-emerald-950 border border-emerald-300 p-2 text-center font-black text-xs shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+
+                  {/* Row 6: Total Payable (Value of Tickets @ Rs. 35) */}
+                  <tr className="bg-amber-100 text-amber-950 border-t-2 border-amber-400">
+                    <td className="sticky left-0 z-30 bg-amber-100 border border-gray-300 p-2.5 font-black uppercase text-amber-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      TOTAL PAYABLE (ටිකට්පත් වටිනාකම @ Rs. 35)
+                    </td>
+                    {employees.map((emp) => {
+                      const payable = colTotals.totalPayable[emp.id] || 0;
+                      return (
+                        <td key={emp.id} className="border border-gray-300 p-2 text-center font-black text-win text-sm">
+                          Rs. {payable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      );
+                    })}
+                    <td className="sticky right-0 z-30 bg-amber-300 text-amber-950 border border-amber-500 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      Rs. {grandTotals.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                   </tr>
                 </tfoot>
