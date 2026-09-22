@@ -222,3 +222,57 @@ body::before {
     background-position: -200% 0;
   }
 }
+
+/* Print Styles */
+@media print {
+  /* Hide website shell elements and interactive controls */
+  nav,
+  footer,
+  header,
+  aside,
+  .no-print,
+  .print\:hidden,
+  [class*="print:hidden"] {
+    display: none !important;
+  }
+
+  /* Reset document flow and background */
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Remove decorative grain */
+  body::before {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* A4 page formatting */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+
+  /* Prevent browser from repeating table footer on every page */
+  table tfoot {
+    display: table-row-group !important;
+  }
+
+  /* Prevent page breaks inside lottery sections */
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}
+

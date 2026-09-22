@@ -1,13 +1,10 @@
-const CACHE_NAME = "lottoscan-pwa-v2";
+const CACHE_NAME = "lottoscan-pwa-v3";
 const STATIC_ASSETS = [
   "/",
   "/check",
   "/scan",
   "/results",
   "/about",
-  "/admin/dashboard",
-  "/admin/orders",
-  "/admin/reports",
   "/manifest.json",
   "/icon-192.png",
   "/icon-512.png",
@@ -83,8 +80,7 @@ self.addEventListener("fetch", (event) => {
     url.pathname.endsWith(".png") ||
     url.pathname.endsWith(".svg") ||
     url.pathname.endsWith(".jpg") ||
-    url.pathname.endsWith(".webp") ||
-    url.pathname.startsWith("/_next/static/")
+    url.pathname.endsWith(".webp")
   ) {
     event.respondWith(
       caches.match(event.request).then((cached) => {

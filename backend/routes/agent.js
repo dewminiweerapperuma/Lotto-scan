@@ -23,6 +23,187 @@ router.get('/reports/daily', async (req, res) => {
   }
 });
 
+// Helper: convert number to words (for report note)
+function numberToWords(num) {
+  if (num === 0) return 'zero';
+  const ones = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+    'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+  const tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+  const scales = ['', 'thousand', 'million', 'billion'];
+
+  function convertChunk(n) {
+    let str = '';
+    if (n >= 100) {
+      str += ones[Math.floor(n / 100)] + ' hundred';
+      n %= 100;
+      if (n > 0) str += ' and ';
+    }
+    if (n >= 20) {
+      str += tens[Math.floor(n / 10)];
+      n %= 10;
+      if (n > 0) str += '-' + ones[n];
+    } else if (n > 0) {
+      str += ones[n];
+    }
+    return str;
+  }
+
+  const intPart = Math.floor(Math.abs(num));
+  const centsPart = Math.round((Math.abs(num) - intPart) * 100);
+
+  let result = '';
+  let chunkIndex = 0;
+  let remaining = intPart;
+
+  if (remaining === 0) {
+    result = 'zero';
+  } else {
+    const chunks = [];
+    while (remaining > 0) {
+      const chunk = remaining % 1000;
+      if (chunk > 0) {
+        chunks.unshift(convertChunk(chunk) + (scales[chunkIndex] ? ' ' + scales[chunkIndex] : ''));
+      }
+      remaining = Math.floor(remaining / 1000);
+      chunkIndex++;
+    }
+    result = chunks.join(' ');
+  }
+
+  let words = 'Rupees ' + result;
+  if (centsPart > 0) {
+    words += ' and ' + convertChunk(centsPart) + ' cents';
+  }
+  words += ' only';
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+// Helper: build structured scan detail report for a specific board or all
+function buildScanDetailReport({ claims, boardFilter, date, agentId, printDate, agentCode, agentName }) {
+  const filteredClaims = boardFilter && boardFilter !== 'ALL'
+    ? claims.filter(c => (c.board || '').toUpperCase() === boardFilter.toUpperCase())
+    : claims;
+
+  // Group by lottery name
+  const lotteryMap = new Map();
+  filteredClaims.forEach(c => {
+    const lotteryKey = c.lotteryName || 'Unknown Lottery';
+    if (!lotteryMap.has(lotteryKey)) {
+      lotteryMap.set(lotteryKey, []);
+    }
+    lotteryMap.get(lotteryKey).push(c);
+  });
+
+  const lotteries = [];
+  let grandTotalTickets = 0;
+  let grandTotalAmount = 0;
+
+  for (const [lotteryName, lotteryClaims] of lotteryMap) {
+    const prizeMap = new Map();
+    lotteryClaims.forEach(c => {
+      const prize = parseFloat(c.prizeAmount) || 0;
+      if (!prizeMap.has(prize)) {
+        prizeMap.set(prize, { prize, ticketCount: 0, amount: 0 });
+      }
+      const tier = prizeMap.get(prize);
+      tier.ticketCount += 1;
+      tier.amount += prize;
+    });
+
+    const tiers = Array.from(prizeMap.values()).sort((a, b) => a.prize - b.prize);
+    const subtotalTickets = tiers.reduce((sum, t) => sum + t.ticketCount, 0);
+    const subtotalAmount = tiers.reduce((sum, t) => sum + t.amount, 0);
+
+    grandTotalTickets += subtotalTickets;
+    grandTotalAmount += subtotalAmount;
+
+    lotteries.push({
+      name: lotteryName,
+      tiers,
+      subtotalTickets,
+      subtotalAmount
+    });
+  }
+
+  // Sort lotteries alphabetically
+  lotteries.sort((a, b) => a.name.localeCompare(b.name));
+
+  const amountInWords = numberToWords(grandTotalAmount);
+  const boardTitle = boardFilter === 'NLB'
+    ? 'National Lotteries Board'
+    : boardFilter === 'DLB'
+      ? 'Development Lotteries Board'
+      : 'All Lotteries';
+
+  return {
+    board: boardFilter || 'ALL',
+    boardTitle,
+    agentCode: agentCode || (boardFilter === 'DLB' ? 'DLB-AG-3092' : 'A172'),
+    agentName: agentName || 'M G Thilakarathne',
+    printDate,
+    reportDate: date,
+    lotteries,
+    grandTotalTickets,
+    grandTotalAmount,
+    amountInWords
+  };
+}
+
+// @route   GET /api/agent/reports/scan-detail
+// @desc    Get lottery-wise winning report grouped by lottery name -> prize tier (Agent's Scan Detail) for NLB & DLB
+// @access  Public (or Agent/Admin)
+router.get('/reports/scan-detail', async (req, res) => {
+  try {
+    const date = req.query.date || new Date().toISOString().slice(0, 10);
+    const agentId = req.query.agentId || 'default-agent';
+    const requestedBoard = (req.query.board || '').toUpperCase(); // 'NLB' | 'DLB' | ''
+
+    const claims = await Claim.getClaimsByDate(date, agentId);
+
+    // Format the print date
+    const dateObj = new Date(date + 'T00:00:00');
+    const months = ['January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'];
+    const printDate = `${dateObj.getFullYear()} ${months[dateObj.getMonth()]} ${String(dateObj.getDate()).padStart(2, '0')}`;
+
+    const nlbReport = buildScanDetailReport({
+      claims,
+      boardFilter: 'NLB',
+      date,
+      agentId,
+      printDate,
+      agentCode: agentId === 'default-agent' ? 'A172' : agentId,
+      agentName: 'M G Thilakarathne'
+    });
+
+    const dlbReport = buildScanDetailReport({
+      claims,
+      boardFilter: 'DLB',
+      date,
+      agentId,
+      printDate,
+      agentCode: agentId === 'default-agent' ? 'DLB-AG-3092' : agentId,
+      agentName: 'M G Thilakarathne'
+    });
+
+    const activeBoard = requestedBoard === 'DLB' ? 'DLB' : 'NLB';
+    const activeReport = activeBoard === 'DLB' ? dlbReport : nlbReport;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        ...activeReport,
+        activeBoard,
+        nlb: nlbReport,
+        dlb: dlbReport
+      }
+    });
+  } catch (error) {
+    console.error('Scan detail report error:', error);
+    return res.status(500).json({ message: 'Server error generating scan detail report.', error: error.message });
+  }
+});
+
 // @route   GET /api/agent/orders
 // @desc    Get 2D daily employee lottery order allocation matrix & commission summary
 // @access  Public (or Agent/Admin)
@@ -47,14 +228,16 @@ router.get('/orders', async (req, res) => {
 // @access  Public (or Agent/Admin)
 router.post('/orders', async (req, res) => {
   try {
-    const { date, agentId, matrix, returns, employeeCommissionRates } = req.body;
+    const { date, agentId, matrix, additional, returns, remaining, employeeCommissionRates } = req.body;
     const dateStr = date || new Date().toISOString().slice(0, 10);
 
     const savedMatrix = await Order.saveDailyOrders({
       dateStr,
       agentId: agentId || 'default-agent',
       matrix: matrix || {},
+      additional: additional || {},
       returns: returns || {},
+      remaining: remaining || {},
       employeeCommissionRates: employeeCommissionRates || {}
     });
 

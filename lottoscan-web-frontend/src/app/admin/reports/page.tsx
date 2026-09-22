@@ -245,6 +245,15 @@ export default function DailyReportsPage() {
                 📦 Daily Order Sheet
               </Button>
             </Link>
+            <Link href="/admin/reports/scan-detail">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-purple-300 bg-purple-50 text-purple-900 font-bold text-xs shadow-sm hover:bg-purple-100"
+              >
+                📋 Agent&apos;s Scan Detail
+              </Button>
+            </Link>
             <Button
               variant="outline"
               size="sm"

@@ -60,6 +60,8 @@ export const agent = {
   getDailyOrders: (date?: string, agentId?: string) =>
     apiClient.get(`/agent/orders?date=${date || ""}&agentId=${agentId || "default-agent"}`),
   saveDailyOrders: (data: any) => apiClient.post("/agent/orders", data),
+  getScanDetailReport: (date?: string, board?: string, agentId?: string) =>
+    apiClient.get(`/agent/reports/scan-detail?date=${date || ""}${board ? `&board=${board}` : ""}&agentId=${agentId || "default-agent"}`),
 };
 
 export default apiClient;

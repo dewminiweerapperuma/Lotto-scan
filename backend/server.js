@@ -54,7 +54,7 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   await questdb.initDB();
 
-  // Auto-seed default admin and initial agency data
+  // Auto-seed default admin and initial agency data (each independent)
   try {
     const User = require('./models/User');
     const existingLk = await User.findByEmail('admin@lottoscan.lk');
@@ -62,17 +62,29 @@ const startServer = async () => {
       await User.create({ email: 'admin@lottoscan.lk', password: 'admin', role: 'admin' });
       console.log('[Auth] Seeded default admin: admin@lottoscan.lk');
     }
+  } catch (err) {
+    console.warn('[Auth/Seed] User seed notice:', err.message);
+  }
 
+  try {
     const Employee = require('./models/Employee');
     await Employee.seedSampleEmployees();
+  } catch (err) {
+    console.warn('[Auth/Seed] Employee seed notice:', err.message);
+  }
 
+  try {
     const Claim = require('./models/Claim');
     await Claim.seedSampleClaims();
+  } catch (err) {
+    console.warn('[Auth/Seed] Claim seed notice:', err.message);
+  }
 
+  try {
     const Order = require('./models/Order');
     await Order.seedSampleOrders();
   } catch (err) {
-    console.warn('[Auth/Seed] Startup seed notice:', err.message);
+    console.warn('[Auth/Seed] Order seed notice:', err.message);
   }
 
   app.listen(PORT, () => {

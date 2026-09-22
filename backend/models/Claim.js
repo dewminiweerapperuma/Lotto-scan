@@ -1,7 +1,26 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db/questdb');
 
+const DLB_LOTTERIES = [
+  'ada kotipathi', 'shanida', 'shanida wasanawa', 'lagna wasanawa', 'lagna wasana', 
+  'super ball', 'superball', 'kapruka', 'sasiri', 'supiri dhana sampatha', 
+  'jaya sampatha', 'development fortune'
+];
+
+function getBoardForLottery(lotteryName, fallbackBoard) {
+  if (fallbackBoard && (fallbackBoard.toUpperCase() === 'DLB' || fallbackBoard.toUpperCase() === 'NLB')) {
+    return fallbackBoard.toUpperCase();
+  }
+  const clean = (lotteryName || '').toLowerCase().trim();
+  for (const dlb of DLB_LOTTERIES) {
+    if (clean.includes(dlb)) return 'DLB';
+  }
+  return 'NLB';
+}
+
 class Claim {
+  static getBoardForLottery = getBoardForLottery;
+
   static async createClaim({
     agentId = 'default-agent',
     employeeId = 'emp-1',
@@ -18,6 +37,7 @@ class Claim {
     const id = uuidv4();
     const claimedAt = new Date().toISOString();
     const formattedDrawDate = drawDate.includes('T') ? drawDate : `${drawDate}T00:00:00.000Z`;
+    const assignedBoard = getBoardForLottery(lotteryName, board);
 
     await db.query(
       `INSERT INTO winning_claims 
@@ -29,7 +49,7 @@ class Claim {
         employeeId,
         employeeName,
         lotteryName,
-        board,
+        assignedBoard,
         drawNumber,
         formattedDrawDate,
         ticketSerial || `TCK-${Math.floor(100000 + Math.random() * 900000)}`,
@@ -46,7 +66,7 @@ class Claim {
       employeeId,
       employeeName,
       lotteryName,
-      board,
+      board: assignedBoard,
       drawNumber,
       drawDate: formattedDrawDate,
       ticketSerial,
@@ -70,7 +90,7 @@ class Claim {
       employeeId: r.employee_id,
       employeeName: r.employee_name,
       lotteryName: r.lottery_name,
-      board: r.board,
+      board: getBoardForLottery(r.lottery_name, r.board),
       drawNumber: r.draw_number,
       drawDate: r.draw_date,
       ticketSerial: r.ticket_serial,

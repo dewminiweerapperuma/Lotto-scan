@@ -105,7 +105,9 @@ const createTables = async () => {
       lottery_name VARCHAR,
       board VARCHAR,
       ordered_qty INT,
+      additional_qty INT,
       returned_qty INT,
+      remaining_qty INT,
       commission_rate DOUBLE,
       created_at TIMESTAMP
     );

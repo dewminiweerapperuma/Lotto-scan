@@ -6,7 +6,7 @@ export default function Footer() {
   const { t } = useLanguage();
 
   return (
-    <footer className="bg-[#1A1A1A] border-t border-white/10 text-white mt-20">
+    <footer className="bg-[#1A1A1A] border-t border-white/10 text-white mt-20 print:hidden no-print">
       <div className="container py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Col 1 */}

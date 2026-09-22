@@ -1,4 +1,5 @@
 export interface LotteryInfo {
+  id?: string;
   name: string;
   nameSi?: string;
   topPrize: string;

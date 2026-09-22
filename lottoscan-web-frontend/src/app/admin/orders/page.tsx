@@ -33,6 +33,8 @@ export default function DailyOrdersPage() {
   const [lotteries, setLotteries] = useState<LotteryRow[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [matrix, setMatrix] = useState<Record<string, Record<string, number>>>({});
+  const [additional, setAdditional] = useState<Record<string, number>>({});
+  const [remaining, setRemaining] = useState<Record<string, number>>({});
   const [returns, setReturns] = useState<Record<string, number>>({});
   const [commissionRates, setCommissionRates] = useState<Record<string, number>>({});
   
@@ -71,6 +73,8 @@ export default function DailyOrdersPage() {
         setLotteries(data.lotteries || []);
         setEmployees(data.employees || []);
         setMatrix(data.matrix || {});
+        setAdditional(data.additional || {});
+        setRemaining(data.remaining || {});
         setReturns(data.returns || {});
         setCommissionRates(data.employeeCommissionRates || {});
       }
@@ -96,6 +100,24 @@ export default function DailyOrdersPage() {
         ...(prev[lotteryName] || {}),
         [empId]: num
       }
+    }));
+  };
+
+  // Handle Additional tickets change
+  const handleAdditionalChange = (empId: string, val: string) => {
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    setAdditional(prev => ({
+      ...prev,
+      [empId]: num
+    }));
+  };
+
+  // Handle Remaining tickets change (remaining tickets of the day)
+  const handleRemainingChange = (empId: string, val: string) => {
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    setRemaining(prev => ({
+      ...prev,
+      [empId]: num
     }));
   };
 
@@ -125,6 +147,8 @@ export default function DailyOrdersPage() {
       await agentApi.saveDailyOrders({
         date: selectedDate,
         matrix,
+        additional,
+        remaining,
         returns,
         employeeCommissionRates: commissionRates
       });
@@ -225,6 +249,7 @@ export default function DailyOrdersPage() {
   // 2. Column Calculations per Employee
   const colTotals = useMemo(() => {
     const totalOrdered: Record<string, number> = {};
+    const totalIssued: Record<string, number> = {};
     const netSold: Record<string, number> = {};
     const commissionAmounts: Record<string, number> = {};
     const totalPayable: Record<string, number> = {};
@@ -236,28 +261,47 @@ export default function DailyOrdersPage() {
       });
       totalOrdered[emp.id] = orderedSum;
 
+      const add = additional[emp.id] || 0;
+      const rem = remaining[emp.id] || 0;
       const ret = returns[emp.id] || 0;
-      const net = Math.max(0, orderedSum - ret);
+
+      const issued = orderedSum + add;
+      totalIssued[emp.id] = issued;
+
+      // Net Sold = Total Issued (Ordered + Additional) - Remaining Tickets of the Day - Unsold Returns
+      const net = Math.max(0, issued - rem - ret);
       netSold[emp.id] = net;
 
       const rate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
       commissionAmounts[emp.id] = net * rate;
-      totalPayable[emp.id] = orderedSum * 35; // Total tickets of that person * 35
+      totalPayable[emp.id] = net * 35; // Sold value @ Rs. 35
     });
 
-    return { totalOrdered, netSold, commissionAmounts, totalPayable };
-  }, [lotteries, employees, matrix, returns, commissionRates]);
+    return { totalOrdered, totalIssued, netSold, commissionAmounts, totalPayable };
+  }, [lotteries, employees, matrix, additional, returns, remaining, commissionRates]);
 
   // 3. Grand Totals
   const grandTotals = useMemo(() => {
     const totalOrdered = Object.values(rowTotals).reduce((a, b) => a + b, 0);
+    const totalAdditional = Object.values(additional).reduce((a, b) => a + b, 0);
+    const totalIssued = totalOrdered + totalAdditional;
+    const totalRemaining = Object.values(remaining).reduce((a, b) => a + b, 0);
     const totalReturns = Object.values(returns).reduce((a, b) => a + b, 0);
     const totalNetSold = Object.values(colTotals.netSold).reduce((a, b) => a + b, 0);
     const totalCommission = Object.values(colTotals.commissionAmounts).reduce((a, b) => a + b, 0);
-    const totalPayable = totalOrdered * 35; // Total tickets across all employees * 35
+    const totalPayable = Object.values(colTotals.totalPayable).reduce((a, b) => a + b, 0);
 
-    return { totalOrdered, totalReturns, totalNetSold, totalCommission, totalPayable };
-  }, [rowTotals, returns, colTotals]);
+    return {
+      totalOrdered,
+      totalAdditional,
+      totalIssued,
+      totalRemaining,
+      totalReturns,
+      totalNetSold,
+      totalCommission,
+      totalPayable
+    };
+  }, [rowTotals, additional, remaining, returns, colTotals]);
 
   const handlePrint = () => {
     window.print();
@@ -416,6 +460,11 @@ export default function DailyOrdersPage() {
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
                 {grandTotals.totalOrdered.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
+              {grandTotals.totalAdditional > 0 && (
+                <p className="text-[11px] font-mono text-blue-600 font-bold mt-0.5">
+                  + {grandTotals.totalAdditional.toLocaleString()} Additional
+                </p>
+              )}
             </div>
             <div className="w-11 h-11 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-xl shrink-0">
               📦
@@ -425,14 +474,17 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Unsold Returns
+                Remaining Tickets (Day)
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-red-600 mt-1">
-                {grandTotals.totalReturns.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 mt-1">
+                {grandTotals.totalRemaining.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
+              </p>
+              <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
+                Remaining tickets of the day
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-red-50 border border-red-200 flex items-center justify-center text-xl shrink-0">
-              ↩️
+            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
+              📋
             </div>
           </Card>
 
@@ -443,6 +495,9 @@ export default function DailyOrdersPage() {
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
                 {grandTotals.totalNetSold.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Sold</span>
+              </p>
+              <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
+                Total sold by sellers
               </p>
             </div>
             <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
@@ -457,6 +512,9 @@ export default function DailyOrdersPage() {
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
                 Rs. {grandTotals.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+              <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
+                Commission: Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
@@ -499,13 +557,9 @@ export default function DailyOrdersPage() {
                 {/* ── Table Header: Employees ── */}
                 <thead className="sticky top-0 z-20 bg-amber-400 text-gray-900 uppercase font-extrabold shadow-sm">
                   <tr>
-                    {/* Sticky Lottery Name Column */}
-                    <th className="sticky left-0 z-30 bg-amber-400 border border-gray-300 p-2.5 text-left min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      <span className="block text-xs font-black">Lottery Game</span>
-                      <span className="block text-[10px] font-semibold text-gray-800">Board Type</span>
+                    <th className="sticky left-0 z-30 bg-amber-400 border border-gray-400 p-2.5 text-xs tracking-wider min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      Lottery Name / Seller
                     </th>
-
-                    {/* Employee Columns */}
                     {employees.map((emp) => {
                       const currentRate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
                       return (
@@ -627,15 +681,67 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 2: Unsold Returns */}
-                  <tr className="bg-red-600 text-white border-y border-red-700">
-                    <td className="sticky left-0 z-30 bg-red-600 text-white border border-red-700 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      UNSOLD RETURNS
+                  {/* Row 2: Additional Tickets (NEW ROW) */}
+                  <tr className="bg-sky-100 text-sky-950 border-y border-sky-300">
+                    <td className="sticky left-0 z-30 bg-sky-100 text-sky-950 border border-sky-300 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      ADDITIONAL TICKETS
+                    </td>
+                    {employees.map((emp) => {
+                      const addVal = additional[emp.id] ?? 0;
+                      return (
+                        <td key={emp.id} className="border border-sky-200 p-1 text-center bg-sky-50/70">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={addVal === 0 ? "" : addVal}
+                            placeholder="0"
+                            onChange={(e) => handleAdditionalChange(emp.id, e.target.value)}
+                            className="w-full text-center font-mono font-black text-xs py-1 rounded bg-white text-sky-900 border border-sky-300 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="sticky right-0 z-30 bg-sky-200 text-sky-950 border border-sky-300 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      {grandTotals.totalAdditional.toLocaleString()}
+                    </td>
+                  </tr>
+
+                  {/* Row 3: Remaining Tickets of the Day (NEW ROW) */}
+                  <tr className="bg-amber-100 text-amber-950 border-y border-amber-300">
+                    <td className="sticky left-0 z-30 bg-amber-100 text-amber-950 border border-amber-300 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      REMAINING TICKETS
+                    </td>
+                    {employees.map((emp) => {
+                      const remVal = remaining[emp.id] ?? 0;
+                      return (
+                        <td key={emp.id} className="border border-amber-300 p-1 text-center bg-amber-50/70">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={remVal === 0 ? "" : remVal}
+                            placeholder="0"
+                            onChange={(e) => handleRemainingChange(emp.id, e.target.value)}
+                            className="w-full text-center font-mono font-black text-xs py-1 rounded bg-white text-amber-950 border border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold"
+                          />
+                        </td>
+                      );
+                    })}
+                    <td className="sticky right-0 z-30 bg-amber-200 text-amber-950 border border-amber-400 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      {grandTotals.totalRemaining.toLocaleString()}
+                    </td>
+                  </tr>
+
+                  {/* Row 4: Returns */}
+                  <tr className="bg-red-50 text-red-950 border-y border-red-200">
+                    <td className="sticky left-0 z-30 bg-red-100 text-red-950 border border-red-200 p-2 font-bold uppercase text-[11px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      RETURNS
                     </td>
                     {employees.map((emp) => {
                       const retVal = returns[emp.id] ?? 0;
                       return (
-                        <td key={emp.id} className="border border-red-700 p-1 text-center">
+                        <td key={emp.id} className="border border-red-200 p-1 text-center">
                           <input
                             type="number"
                             min="0"
@@ -643,23 +749,23 @@ export default function DailyOrdersPage() {
                             value={retVal === 0 ? "" : retVal}
                             placeholder="0"
                             onChange={(e) => handleReturnChange(emp.id, e.target.value)}
-                            className="w-full text-center font-mono font-black text-xs py-1 rounded bg-red-700/80 text-white placeholder-red-300 border border-red-500 focus:outline-none focus:bg-red-800 focus:border-white"
+                            className="w-full text-center font-mono font-bold text-xs py-1 rounded bg-white text-red-700 placeholder-gray-300 border border-red-300 focus:outline-none focus:border-red-500"
                           />
                         </td>
                       );
                     })}
-                    <td className="sticky right-0 z-30 bg-red-700 text-white border border-red-800 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                    <td className="sticky right-0 z-30 bg-red-100 text-red-950 border border-red-200 p-2 text-center font-bold text-xs shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       {grandTotals.totalReturns.toLocaleString()}
                     </td>
                   </tr>
 
-                  {/* Row 3: Net Sold */}
+                  {/* Row 5: Net Sold */}
                   <tr className="bg-emerald-100 text-emerald-950 border-b border-emerald-300">
                     <td className="sticky left-0 z-30 bg-emerald-100 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       NET SOLD
                     </td>
                     {employees.map((emp) => (
-                      <td key={emp.id} className="border border-gray-300 p-2 text-center font-extrabold text-emerald-900">
+                      <td key={emp.id} className="border border-gray-300 p-2 text-center font-extrabold text-emerald-900 text-sm">
                         {(colTotals.netSold[emp.id] || 0).toLocaleString()}
                       </td>
                     ))}
@@ -668,10 +774,10 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 4: Commission Rate Input (Rs. 2.50 or 2.00) */}
+                  {/* Row 6: Commission Rate Input */}
                   <tr className="bg-sky-50 text-sky-950 border-b border-sky-200">
                     <td className="sticky left-0 z-30 bg-sky-50 border border-gray-300 p-2 font-black uppercase text-sky-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      COMMISSION RATE (Rs./Tkt)
+                      COMMISSION RATE (RS./TKT)
                     </td>
                     {employees.map((emp) => {
                       const rate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
@@ -693,10 +799,10 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 5: Seller Commission (Rs.) */}
+                  {/* Row 7: Seller Commission */}
                   <tr className="bg-emerald-50 text-emerald-950 border-b border-emerald-200">
                     <td className="sticky left-0 z-30 bg-emerald-50 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      SELLER COMMISSION (Rs.)
+                      COMMISSION
                     </td>
                     {employees.map((emp) => {
                       const comm = colTotals.commissionAmounts[emp.id] || 0;
@@ -711,10 +817,10 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 6: Total Payable (Value of Tickets @ Rs. 35) */}
+                  {/* Row 8: Total Payable */}
                   <tr className="bg-amber-100 text-amber-950 border-t-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-100 border border-gray-300 p-2.5 font-black uppercase text-amber-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL PAYABLE (@ Rs. 35)
+                      TOTAL PAYABLE (@ RS. 35)
                     </td>
                     {employees.map((emp) => {
                       const payable = colTotals.totalPayable[emp.id] || 0;
