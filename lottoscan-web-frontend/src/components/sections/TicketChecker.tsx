@@ -14,8 +14,10 @@ import { scanTicketImage, parseTicketText, isSerialOrVerificationData } from "@/
 import { parseLotteryQR } from "@/lib/qrParser";
 import LaptopQrScanner from "@/components/scanner/LaptopQrScanner";
 import soundEffects from "@/lib/soundEffects";
+import { useLanguage } from "@/context/LanguageContext";
 
 export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) {
+  const { t, tLottery } = useLanguage();
   const [numbers, setNumbers] = useState(["", "", "", "", ""]);
   const [letter, setLetter] = useState("");
   const [letter2, setLetter2] = useState("");
@@ -333,19 +335,19 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               <ZodiacSelector
                 value={letter}
                 onChange={setLetter}
-                label="1st Zodiac Sign (පළමු ලග්නය)"
+                label={t("first_zodiac_sign")}
                 placeholder="-- Select 1st Zodiac --"
               />
               <ZodiacSelector
                 value={letter2}
                 onChange={setLetter2}
-                label="2nd Zodiac Sign (දෙවන ලග්නය)"
+                label={t("second_zodiac_sign")}
                 placeholder="-- Select 2nd Zodiac --"
               />
             </div>
             <div>
               <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                Draw Date
+                {t("draw_date")}
               </label>
               <input
                 type="date"
@@ -360,11 +362,11 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             <ZodiacSelector
               value={letter}
               onChange={setLetter}
-              label="Lagna / Letter (optional)"
+              label={t("first_zodiac_sign")}
             />
             <div>
               <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                Draw Date
+                {t("draw_date")}
               </label>
               <input
                 type="date"
@@ -379,17 +381,17 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         {/* Lottery selector */}
         <div>
           <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-            Lottery (optional)
+            {t("lottery_optional")}
           </label>
           <select
             value={lotteryName}
             onChange={(e) => setLotteryName(e.target.value)}
             className="input-dark"
           >
-            <option value="">Auto-detect</option>
+            <option value="">{t("auto_detect")}</option>
             {LOTTERIES.map((l) => (
               <option key={l.name} value={l.name}>
-                {l.name}
+                {tLottery(l.name)}
               </option>
             ))}
           </select>
@@ -399,10 +401,10 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
 
         <div className="flex gap-3 pt-2">
           <Button onClick={handleCheck} loading={loading} fullWidth size="lg">
-            Check My Numbers →
+            {t("check_numbers_btn")}
           </Button>
           <Button onClick={handleClear} variant="ghost" size="lg">
-            Clear
+            {t("clear_btn")}
           </Button>
         </div>
       </div>
@@ -479,8 +481,8 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             📷
           </div>
           <div>
-            <p className="text-text-primary font-body font-semibold">Scan or Upload Ticket</p>
-            <p className="text-text-secondary text-xs font-body">Use your camera or upload a ticket photo (supports QR codes, Barcodes & Numbers)</p>
+            <p className="text-text-primary font-body font-semibold">{t("scan_ticket_heading")}</p>
+            <p className="text-text-secondary text-xs font-body">{t("scan_ticket_subheading")}</p>
           </div>
         </div>
 
@@ -496,7 +498,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           <div className="border-2 border-dashed border-gold-border bg-gold-light/20 rounded-2xl p-8 text-center space-y-4 animate-pulse">
             <div className="w-10 h-10 border-4 border-gold border-t-transparent rounded-full animate-spin mx-auto" />
             <div>
-              <p className="text-gold-dark font-body font-extrabold text-sm">Scanning Ticket Photo...</p>
+              <p className="text-gold-dark font-body font-extrabold text-sm">{t("checking_numbers")}</p>
               <p className="text-text-secondary text-xs font-body mt-1">{scanStatus || "Analyzing barcode, QR code, and ticket numbers"}</p>
             </div>
           </div>
@@ -506,22 +508,22 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               onScanSuccess={handleCameraScanSuccess}
             />
             <Button onClick={() => setShowCamera(false)} variant="secondary" fullWidth size="sm">
-              ✕ Close Camera
+              ✕ {t("checker_close_camera")}
             </Button>
           </div>
         ) : (
           <div className="border-2 border-dashed border-gold-border bg-gold-light/10 rounded-2xl p-6 text-center space-y-4">
             <div className="text-4xl text-gold-dark">📷</div>
             <div>
-              <p className="text-gold-dark font-body font-semibold text-sm">Scan QR Code or Upload Photo</p>
-              <p className="text-text-secondary text-xs font-body mt-1">Supports QR code, 1D barcode, and printed ticket photos</p>
+              <p className="text-gold-dark font-body font-semibold text-sm">{t("scan_ticket_heading")}</p>
+              <p className="text-text-secondary text-xs font-body mt-1">{t("scan_ticket_subheading")}</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
               <Button onClick={() => setShowCamera(true)} size="sm" className="flex items-center justify-center gap-2">
-                <span>📷</span> Open Camera
+                <span>📷</span> {t("open_camera_scanner")}
               </Button>
               <Button onClick={() => fileInputRef.current?.click()} variant="secondary" size="sm" className="flex items-center justify-center gap-2">
-                <span>📁</span> Upload Image
+                <span>📁</span> {t("upload_ticket_photo")}
               </Button>
             </div>
           </div>
@@ -562,7 +564,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                     Expired Ticket (Over 6 Months)
                   </span>
                   <h3 className="text-2xl font-display font-extrabold text-rose-950 uppercase tracking-wider">
-                    CLAIM PERIOD EXPIRED
+                    {t("claim_expired")}
                   </h3>
                   <p className="text-3xl md:text-4xl font-mono font-extrabold text-slate-400 line-through leading-none">
                     {result.prizeAmountFormatted || `Rs. ${result.prizeAmount?.toLocaleString()}`}
@@ -575,7 +577,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                 <div className="text-center space-y-2">
                   <div className="text-5xl animate-bounce">🏆</div>
                   <h3 className="text-2xl font-display font-extrabold text-gold-dark uppercase tracking-wider">
-                    YOU WON!
+                    {t("you_won")}
                   </h3>
                   <p className="text-4xl md:text-5xl font-mono font-extrabold text-gold-dark leading-none">
                     {result.prizeAmountFormatted || `Rs. ${result.prizeAmount?.toLocaleString()}`}
@@ -598,7 +600,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   <>
                     <div>
                       <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                        Your Numbers & Lagna
+                        {t("your_numbers_lagna")}
                       </p>
                       <div className="flex gap-2 flex-wrap items-center">
                         {result.ticketNumbers?.map((n: number, i: number) => (
@@ -644,7 +646,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                     </div>
                     <div>
                       <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                        Winning Numbers & Lagna
+                        {t("winning_numbers_lagna")}
                       </p>
                       <div className="flex gap-2 flex-wrap items-center">
                         {result.winningNumbers?.map((n: number, i: number) => (
@@ -662,7 +664,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               {/* Grid draw info */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm pt-4 border-t border-border-default/40">
                 {[
-                  ["Lottery", result.lotteryName],
+                  ["Lottery", tLottery(result.lotteryName)],
                   ["Draw #", result.drawNumber],
                   ["Date", result.drawDate],
                   ["Matches", `${result.matchedCount}/${result.winningNumbers?.length || 5}${result.matchedLetter ? " + Lagna ✓" : ""}`],
@@ -742,7 +744,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                     variant="primary"
                     fullWidth
                   >
-                    🎊 Share My Win
+                    {t("share_my_win")}
                   </Button>
                 ) : (
                   <div className="w-full text-center py-2.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs">
@@ -750,7 +752,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   </div>
                 )}
                 <Button onClick={handleClear} variant="secondary" className="sm:w-32">
-                  Check Another
+                  {t("check_another")}
                 </Button>
               </div>
             </div>
@@ -765,7 +767,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           <div className="text-center space-y-3">
             <div className="text-5xl">😔</div>
             <h3 className="text-2xl font-display font-extrabold text-text-secondary leading-tight">
-              No Match This Draw
+              {t("no_match")}
             </h3>
             <p className="text-text-muted font-body text-sm max-w-xs mx-auto">
               {result.message || "0 of 5 numbers matched. Try checking other dates or lotteries."}
@@ -776,7 +778,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             <div className="space-y-4 pt-6 mt-6 border-t border-border-default/40">
               <div>
                 <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                  Your Numbers & Lagna
+                  {t("your_numbers_lagna")}
                 </p>
                 <div className="flex gap-2 flex-wrap items-center">
                   {result.ticketNumbers.map((n: number, i: number) => (
@@ -822,7 +824,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               </div>
               <div>
                 <p className="text-text-secondary text-[10px] font-body font-bold uppercase tracking-wider mb-2">
-                  Winning Numbers & Lagna
+                  {t("winning_numbers_lagna")}
                 </p>
                 <div className="flex gap-2 flex-wrap items-center">
                   {result.winningNumbers.map((n: number, i: number) => (
@@ -838,7 +840,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
 
           <div className="mt-8">
             <Button onClick={handleClear} variant="secondary" fullWidth>
-              Check Another Ticket
+              {t("check_another")}
             </Button>
           </div>
         </div>
@@ -853,17 +855,20 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         {/* Left Column (55%) */}
         <div className="bg-brand-section p-6 md:p-12 lg:pl-[max(24px,calc((100vw-1440px)/2+24px))] lg:pr-16 lg:py-16 space-y-8 overflow-y-auto lg:h-[calc(100vh-64px)] scrollbar-none">
           <div>
+            <span className="text-gold font-display font-bold text-xs uppercase tracking-widest block mb-2">
+              {t("ticket_checker_badge")}
+            </span>
             <h1 className="text-3xl md:text-4xl font-display font-extrabold text-text-primary mb-2">
-              Check Your Ticket
+              {t("ticket_checker_header_title")}
             </h1>
             <p className="text-text-secondary font-body text-sm">
-              Enter numbers or scan QR code
+              {t("ticket_checker_header_subtitle")}
             </p>
           </div>
 
           {/* Step indicator */}
           <div className="flex items-center gap-2">
-            {["Enter Numbers", "Check", "See Result"].map((step, i) => (
+            {[t("step_enter_numbers"), t("step_check"), t("step_see_result")].map((step, i) => (
               <div key={i} className="flex items-center gap-2">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold ${
@@ -889,7 +894,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           {/* OR divider */}
           <div className="flex items-center gap-4 py-2">
             <div className="flex-1 h-px bg-border-default"></div>
-            <span className="text-text-muted text-xs font-body">OR</span>
+            <span className="text-text-muted text-xs font-body">{t("or_divider")}</span>
             <div className="flex-1 h-px bg-border-default"></div>
           </div>
 
@@ -901,7 +906,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-text-secondary font-body font-semibold">Checking your numbers...</p>
+              <p className="text-text-secondary font-body font-semibold">{t("checking_numbers")}</p>
             </div>
           ) : (
             renderResult()
@@ -921,7 +926,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         {/* OR Divider */}
         <div className="flex items-center gap-4 py-1">
           <div className="flex-1 h-px bg-border-default"></div>
-          <span className="text-text-muted text-xs font-body">OR</span>
+          <span className="text-text-muted text-xs font-body">{t("or_divider")}</span>
           <div className="flex-1 h-px bg-border-default"></div>
         </div>
 
@@ -933,7 +938,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         {loading ? (
           <Card className="h-full min-h-[350px] flex flex-col items-center justify-center py-16">
             <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-text-secondary font-body font-semibold">Checking your numbers...</p>
+            <p className="text-text-secondary font-body font-semibold">{t("checking_numbers")}</p>
           </Card>
         ) : (
           renderResult()

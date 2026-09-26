@@ -103,7 +103,7 @@ export default function Navbar() {
                     className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors"
                   >
                     <Trophy className="w-4 h-4 text-amber-500" />
-                    <span>Today's Live Results</span>
+                    <span>{t("todays_live_results")}</span>
                   </Link>
                   <a
                     href="https://lklottery.com/pdf/"
@@ -113,7 +113,7 @@ export default function Navbar() {
                     className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors"
                   >
                     <FileText className="w-4 h-4 text-red-500" />
-                    <span>Official PDF Sheets</span>
+                    <span>{t("official_pdf_sheets")}</span>
                   </a>
                 </div>
               )}
@@ -140,7 +140,7 @@ export default function Navbar() {
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <span>Bulk Scan</span>
+              <span>{t("nav_bulk_scan")}</span>
               <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
             </Link>
 
@@ -187,7 +187,7 @@ export default function Navbar() {
                   onClick={() => setPortalOpen(!portalOpen)}
                   className="text-sm font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1 transition-colors px-2 py-1"
                 >
-                  <span>Login</span>
+                  <span>{t("nav_login")}</span>
                   <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
               )}
@@ -202,7 +202,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <ShieldCheck className="w-4 h-4 text-amber-500" />
-                        <span>Governance Hub</span>
+                        <span>{t("nav_governance_hub")}</span>
                       </Link>
                       <Link
                         href="/agent/dashboard"
@@ -210,7 +210,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <Building2 className="w-4 h-4 text-slate-500" />
-                        <span>Agency View</span>
+                        <span>{t("nav_agency_view")}</span>
                       </Link>
                     </>
                   ) : isAgent ? (
@@ -221,7 +221,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <Building2 className="w-4 h-4 text-amber-500" />
-                        <span>Agency Dashboard</span>
+                        <span>{t("nav_agency_view")}</span>
                       </Link>
                     </>
                   ) : (
@@ -232,7 +232,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <Building2 className="w-4 h-4 text-amber-600" />
-                        <span>Agent Login</span>
+                        <span>{t("nav_agent_login")}</span>
                       </Link>
                       <Link
                         href="/agent/login"
@@ -240,7 +240,7 @@ export default function Navbar() {
                         className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         <ShieldCheck className="w-4 h-4 text-slate-800" />
-                        <span>Super Admin Login</span>
+                        <span>{t("nav_super_admin_login")}</span>
                       </Link>
                     </>
                   )}
@@ -255,7 +255,7 @@ export default function Navbar() {
                         className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
                       >
                         <LogOut className="w-3.5 h-3.5" />
-                        <span>Sign Out</span>
+                        <span>{t("nav_sign_out")}</span>
                       </button>
                     </div>
                   )}
@@ -268,7 +268,7 @@ export default function Navbar() {
               href="/check"
               className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-display font-extrabold text-sm transition-all shadow-sm shadow-amber-500/20 hover:shadow-md hover:shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0"
             >
-              Check Ticket
+              {t("nav_check")}
             </Link>
           </div>
 
@@ -314,7 +314,7 @@ export default function Navbar() {
               onClick={() => setMobileMenuOpen(false)}
               className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
             >
-              Bulk Scan ⚡
+              {t("nav_bulk_scan")} ⚡
             </Link>
             <Link
               href="/about"
@@ -330,14 +330,14 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="block text-center py-2.5 text-sm font-bold text-slate-700 bg-slate-50 rounded-xl"
               >
-                Login
+                {t("nav_login")}
               </Link>
               <Link
                 href="/check"
                 onClick={() => setMobileMenuOpen(false)}
                 className="block text-center py-2.5 text-sm font-extrabold text-slate-950 bg-amber-500 rounded-xl"
               >
-                Check Ticket
+                {t("nav_check")}
               </Link>
             </div>
           </div>

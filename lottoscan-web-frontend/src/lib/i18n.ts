@@ -81,6 +81,95 @@ export const TRANSLATIONS: Translations = {
   // PDF Download
   download_pdf: { en: "Download PDF", si: "PDF ඩවුන්ලෝඩ්" },
   download_official_pdf: { en: "Download Official PDF Results 📄", si: "නිල PDF පත්‍රිකාව ඩවුන්ලෝඩ් කරන්න 📄" },
+
+  // Additional Navbar Keys
+  nav_bulk_scan: { en: "Bulk Scan", si: "තොග ස්කෑන්" },
+  nav_login: { en: "Login", si: "පිවිසෙන්න" },
+  nav_agent_login: { en: "Agent Login", si: "නියෝජිත පිවිසුම" },
+  nav_super_admin_login: { en: "Super Admin Login", si: "ප්‍රධාන පරිපාලක පිවිසුම" },
+  nav_governance_hub: { en: "Governance Hub", si: "පාලන මධ්‍යස්ථානය" },
+  nav_agency_view: { en: "Agency View", si: "නියෝජිත පුවරුව" },
+  nav_sign_out: { en: "Sign Out", si: "ඉවත් වන්න" },
+  todays_live_results: { en: "Today's Live Results", si: "අද සජීවී ප්‍රතිඵල" },
+  official_pdf_sheets: { en: "Official PDF Sheets", si: "නිල PDF පත්‍රිකා" },
+
+  // Hero Section (Full)
+  hero_badge: { en: "Sri Lanka's Official Real-Time Lottery Checker", si: "ශ්‍රී ලංකාවේ නිල සජීවී ලොතරැයි පරීක්ෂකය" },
+  hero_title_ticket: { en: "Ticket", si: "පත" },
+  hero_title_instant: { en: "Instantly", si: "වහාම පරීක්ෂා කරන්න" },
+  hero_btn_check: { en: "Check My Ticket →", si: "මගේ ටිකට් පත පරීක්ෂා කරන්න →" },
+  hero_btn_results: { en: "View Today's Results", si: "අද ප්‍රතිඵල බලන්න" },
+  stat_lotteries: { en: "Lotteries Supported", si: "ලොතරැයි වර්ග" },
+  stat_boards: { en: "Official Boards", si: "නිල මණ්ඩල (NLB & DLB)" },
+  stat_data: { en: "Live Verified Data", si: "සජීවී තහවුරු කළ දත්ත" },
+
+  // Live Draw Hero Card
+  official_live_draws: { en: "Official Live Draws", si: "නිල සජීවී දිනුම් ඇදීම්" },
+  draws_synced: { en: "Draws Synced", si: "දිනුම් ඇදීම් සමමුහුර්තයි" },
+  connecting_boards: { en: "Connecting to NLB/DLB...", si: "NLB/DLB හා සම්බන්ධ වෙමින්..." },
+  draw_no: { en: "Draw", si: "දිනුම් වාරය" },
+  official_winning_numbers: { en: "Official Winning Numbers", si: "නිල ජයග්‍රාහී අංක" },
+  top_jackpot_prize: { en: "Top Jackpot Prize", si: "ප්‍රධාන ජැක්පොට් දිනුම" },
+  check_this_draw: { en: "Check This Draw →", si: "මෙම දිනුම පරීක්ෂා කරන්න →" },
+  view_all_draws: { en: "View All Draws", si: "සියලුම දිනුම් බලන්න" },
+  loading_draw: { en: "Loading draw results...", si: "දිනුම් ප්‍රතිඵල ලබාගනිමින්..." },
+
+  // How It Works
+  how_it_works_badge: { en: "HOW IT WORKS", si: "ක්‍රියා කරන ආකාරය" },
+  how_it_works_title: { en: "Three simple steps", si: "සරල පියවර තුනක්" },
+  how_it_works_subtitle: { en: "Check your lottery ticket in under 30 seconds", si: "තත්පර 30කින් ඔබේ ලොතරැයි පත පරීක්ෂා කරගන්න" },
+  step_1_title: { en: "Scan or Enter", si: "ස්කෑන් කරන්න හෝ ඇතුළත් කරන්න" },
+  step_1_desc: { en: "Scan the QR code on your ticket with your camera, or type your numbers manually", si: "ඔබගේ කැමරාවෙන් ටිකට් පතේ ඇති QR කේතය ස්කෑන් කරන්න, නැතහොත් අංක අතින් ඇතුළත් කරන්න" },
+  step_2_title: { en: "Instant Check", si: "ක්ෂණික පරීක්ෂාව" },
+  step_2_desc: { en: "We compare your numbers against today's official results from NLB and DLB automatically", si: "අප ඔබගේ අංක NLB සහ DLB නිල දිනුම් ප්‍රතිඵල සමඟ ස්වයංක්‍රීයව සංසන්දනය කරමු" },
+  step_3_title: { en: "See Your Result", si: "ඔබේ ප්‍රතිඵලය බලන්න" },
+  step_3_desc: { en: "Find out instantly if you've won and exactly how much your prize is worth", si: "ඔබ ජයග්‍රහණය කර ඇත්ද සහ ඔබේ ත්‍යාග මුදල කොපමණදැයි ක්ෂණිකව දැනගන්න" },
+  how_it_works_btn: { en: "Check My Ticket Now →", si: "දැන්ම ටිකට් පත පරීක්ෂා කරන්න →" },
+
+  // Ticket Checker UI Elements
+  ticket_checker_badge: { en: "OFFICIAL LOTTERY VERIFIER", si: "නිල ලොතරැයි පරීක්ෂකය" },
+  ticket_checker_header_title: { en: "Check Your Ticket", si: "ඔබේ ටිකට් පත පරීක්ෂා කරන්න" },
+  ticket_checker_header_subtitle: { en: "Enter numbers or scan QR code", si: "අංක ඇතුළත් කරන්න හෝ QR කේතය ස්කෑන් කරන්න" },
+  step_enter_numbers: { en: "Enter Numbers", si: "අංක ඇතුළත් කරන්න" },
+  step_check: { en: "Check", si: "පරීක්ෂා කරන්න" },
+  step_see_result: { en: "See Result", si: "ප්‍රතිඵලය බලන්න" },
+  or_divider: { en: "OR", si: "හෝ" },
+  draw_date: { en: "Draw Date", si: "දිනුම් ඇදීමේ දිනය" },
+  lottery_optional: { en: "Lottery (optional)", si: "ලොතරැයිය (අවශ්‍ය නම්)" },
+  auto_detect: { en: "Auto-detect", si: "ස්වයංක්‍රීයව හඳුනාගන්න" },
+  check_numbers_btn: { en: "Check My Numbers →", si: "මගේ අංක පරීක්ෂා කරන්න →" },
+  clear_btn: { en: "Clear", si: "මකන්න" },
+  scan_ticket_heading: { en: "Scan Ticket with Camera or Upload", si: "කැමරාවෙන් ස්කෑන් කරන්න හෝ ඡායාරූපයක් එක් කරන්න" },
+  scan_ticket_subheading: { en: "Use continuous camera QR reader or upload ticket image", si: "කැමරා QR ස්කෑනරය හෝ ටිකට් පතේ ඡායාරූපයක් භාවිත කරන්න" },
+  open_camera_scanner: { en: "Open Camera Scanner", si: "කැමරා ස්කෑනරය විවෘත කරන්න" },
+  upload_ticket_photo: { en: "Upload Ticket Photo / Barcode", si: "ටිකට් පතේ ඡායාරූපයක් එක් කරන්න" },
+  first_zodiac_sign: { en: "1st Zodiac Sign (පළමු ලග්නය)", si: "පළමු ලග්නය" },
+  second_zodiac_sign: { en: "2nd Zodiac Sign (දෙවන ලග්නය)", si: "දෙවන ලග්නය" },
+  dual_zodiac_notice: {
+    en: "Suba Dawasak tickets feature TWO zodiac signs. Select both signs printed on your ticket.",
+    si: "සුබ දවසක් ලොතරැයි පතෙහි ලග්න දෙකක් ඇත. ටිකට් පතේ ඇති ලග්න දෙකම තෝරන්න."
+  },
+  you_won: { en: "YOU WON!", si: "ඔබ ජයග්‍රහණය කළා!" },
+  no_match: { en: "No Match This Draw", si: "මෙම දිනුම් වාරයේ ගැලපීමක් නැත" },
+  claim_expired: { en: "CLAIM PERIOD EXPIRED", si: "ත්‍යාග ලබා ගැනීමේ කාලය ඉකුත් වී ඇත" },
+  your_numbers_lagna: { en: "Your Numbers & Lagna", si: "ඔබගේ අංක සහ ලග්නය" },
+  winning_numbers_lagna: { en: "Winning Numbers & Lagna", si: "ජයග්‍රාහී අංක සහ ලග්නය" },
+  share_my_win: { en: "🎊 Share My Win", si: "🎊 ජයග්‍රහණය බෙදාගන්න" },
+  check_another: { en: "Check Another", si: "තවත් එකක් පරීක්ෂා කරන්න" },
+  checking_numbers: { en: "Checking your numbers...", si: "ඔබගේ අංක පරීක්ෂා කරමින්..." },
+
+  // Quick Check & Features Sections
+  quick_check_badge: { en: "QUICK CHECK", si: "ක්ෂණික පරීක්ෂාව" },
+  quick_check_title: { en: "Enter Your Numbers Here", si: "ඔබේ අංක මෙහි ඇතුළත් කරන්න" },
+  quick_check_subtitle: { en: "Compare your ticket with today's winning numbers instantly", si: "අද දින ජයග්‍රාහී අංක සමඟ ඔබේ ටිකට් පත ක්ෂණිකව සසඳන්න" },
+  feature_auto_update_title: { en: "Auto Updated", si: "ස්වයංක්‍රීයව යාවත්කාලීනයි" },
+  feature_auto_update_desc: { en: "Results fetched at 11:15 PM nightly from official NLB & DLB servers", si: "සෑම දිනකම රාත්‍රී 11:15 ට නිල NLB සහ DLB සේවාදායකයන්ගෙන් ප්‍රතිඵල ලබා ගැනේ" },
+  feature_mobile_title: { en: "Mobile Friendly", si: "ජංගම දුරකථන සඳහා පහසුයි" },
+  feature_mobile_desc: { en: "Works on any device. Install as a web app on your phone home screen", si: "ඕනෑම උපාංගයක ක්‍රියා කරයි. ඔබගේ දුරකථනයේ යෙදුමක් ලෙස ස්ථාපනය කළ හැක" },
+  feature_secure_title: { en: "Private & Secure", si: "පෞද්ගලික සහ ආරක්ෂිතයි" },
+  feature_secure_desc: { en: "Your ticket numbers are never stored. All checks are processed anonymously", si: "ඔබගේ ටිකට් අංක කිසිවිටෙක සුරැකෙන්නේ නැත. සියලු පරීක්ෂාවන් නිර්නාමිකව සිදු කෙරේ" },
+  feature_instant_title: { en: "Instant Results", si: "ක්ෂණික ප්‍රතිඵල" },
+  feature_instant_desc: { en: "Get your detailed matching logs and results in under 2 seconds", si: "තත්පර 2ක් ඇතුළත ඔබේ සම්පූර්ණ දිනුම් වාර්තාව ලබා ගන්න" },
 };
 
 export const LOTTERY_SINHALA_NAMES: Record<string, string> = {

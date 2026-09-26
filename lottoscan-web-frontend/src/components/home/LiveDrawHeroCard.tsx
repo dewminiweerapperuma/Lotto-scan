@@ -10,6 +10,8 @@ import { getZodiacInfo } from "@/lib/zodiac";
 import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
 import Card from "@/components/ui/Card";
 
+import { useLanguage } from "@/context/LanguageContext";
+
 interface DrawResult {
   id: string;
   lottery_name: string;
@@ -26,6 +28,7 @@ interface DrawResult {
 }
 
 export default function LiveDrawHeroCard() {
+  const { t, tLottery } = useLanguage();
   const [results, setResults] = useState<DrawResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -66,11 +69,11 @@ export default function LiveDrawHeroCard() {
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
           </span>
           <span className="text-xs font-display font-extrabold uppercase tracking-wider text-text-primary">
-            Official Live Draws
+            {t("official_live_draws")}
           </span>
         </div>
         <span className="text-[11px] text-text-secondary font-medium font-body">
-          {results.length > 0 ? `${results.length} Draws Synced` : "Connecting to NLB/DLB..."}
+          {results.length > 0 ? `${results.length} ${t("draws_synced")}` : t("connecting_boards")}
         </span>
       </div>
 
@@ -89,7 +92,7 @@ export default function LiveDrawHeroCard() {
               }`}
             >
               <span>{LOTTERY_EMOJIS[r.lottery_name] || "🎫"}</span>
-              <span>{r.lottery_name}</span>
+              <span>{tLottery(r.lottery_name)}</span>
             </button>
           ))}
         </div>
@@ -100,7 +103,7 @@ export default function LiveDrawHeroCard() {
         {loading ? (
           <div className="p-8 text-center space-y-3">
             <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-text-secondary font-body font-semibold">Loading official live draw results...</p>
+            <p className="text-xs text-text-secondary font-body font-semibold">{t("loading_draw")}</p>
           </div>
         ) : currentDraw ? (
           <div className="p-6 md:p-7">
@@ -109,7 +112,7 @@ export default function LiveDrawHeroCard() {
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full text-xs font-display font-black tracking-wide bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1.5">
                   <span>{lotteryEmoji}</span>
-                  <span>{currentDraw.lottery_name}</span>
+                  <span>{tLottery(currentDraw.lottery_name)}</span>
                 </span>
                 <span
                   className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
@@ -123,7 +126,7 @@ export default function LiveDrawHeroCard() {
               </div>
               <div className="text-right">
                 <span className="text-xs font-mono font-bold text-text-primary block">
-                  Draw #{currentDraw.draw_number}
+                  {t("draw_no")} #{currentDraw.draw_number}
                 </span>
                 <span className="text-[11px] text-text-muted font-body">
                   {currentDraw.draw_date}
@@ -134,7 +137,7 @@ export default function LiveDrawHeroCard() {
             {/* Numbers Display */}
             <div className="mb-5">
               <p className="text-text-muted text-[10px] font-bold uppercase tracking-wider mb-2.5">
-                Official Winning Numbers &amp; Lagna
+                {t("official_winning_numbers")}
               </p>
               {isPyramidLottery(currentDraw.lottery_name) && currentNumbers.length >= 4 ? (
                 <PyramidResults numbers={currentNumbers} letter={currentDraw.letter} />
@@ -163,7 +166,7 @@ export default function LiveDrawHeroCard() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
               <div>
                 <span className="text-text-secondary font-body text-xs font-bold block uppercase tracking-wider">
-                  Top Jackpot Prize
+                  {t("top_jackpot_prize")}
                 </span>
                 <span className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 font-mono">
                   {currentDraw.top_prize || "Over Rs. 50,000,000"}
@@ -174,8 +177,7 @@ export default function LiveDrawHeroCard() {
                 href={`/check?lottery=${encodeURIComponent(currentDraw.lottery_name)}&date=${currentDraw.draw_date}`}
                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-display font-bold text-xs shadow-sm hover:shadow-md transition-all active:scale-95 text-center shrink-0"
               >
-                <span>Check This Draw</span>
-                <span>→</span>
+                <span>{t("check_this_draw")}</span>
               </Link>
             </div>
           </div>
