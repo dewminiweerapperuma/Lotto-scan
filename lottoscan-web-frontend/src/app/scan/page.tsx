@@ -6,12 +6,15 @@ import jsQR from "jsqr";
 import { lottery as lotteryApi, agent as agentApi } from "@/lib/api";
 import { LOTTERIES } from "@/lib/constants";
 import { scanTicketImage, parseTicketText, ParsedTicketData } from "@/lib/ticketScanner";
+import { parseLotteryQR, isValidQRData } from "@/lib/qrParser";
 import NumberBall from "@/components/ui/NumberBall";
 import ZodiacBall from "@/components/ui/ZodiacBall";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { getZodiacInfo } from "@/lib/zodiac";
+import LaptopQrScanner from "@/components/scanner/LaptopQrScanner";
+import soundEffects from "@/lib/soundEffects";
 
 interface ScannedTicketItem {
   id: string;
@@ -21,9 +24,17 @@ interface ScannedTicketItem {
   board: "NLB" | "DLB";
   numbers: (number | string)[];
   letter?: string;
+  zodiac?: string;
   drawNumber?: string;
   drawDate?: string;
+  promotionalNumber?: string;
+  isFutureDraw?: boolean;
   isWinner?: boolean;
+  isExpired?: boolean;
+  canClaimPrize?: boolean;
+  expiryDate?: string;
+  daysRemaining?: number;
+  validityMessage?: string;
   prizeAmount?: number;
   prizeAmountFormatted?: string;
   prizeCategory?: string;
@@ -40,6 +51,8 @@ export default function BulkScanPage() {
   const [scanMode, setScanMode] = useState<"camera" | "upload" | "gun" | "manual">("camera");
   const [scannedTickets, setScannedTickets] = useState<ScannedTicketItem[]>([]);
   const [filterTab, setFilterTab] = useState<"all" | "winners" | "nlb" | "dlb">("all");
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [soundOn, setSoundOn] = useState(true);
   
   // Continuous Camera State
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -143,7 +156,13 @@ export default function BulkScanPage() {
         parsedNums,
         ticket.drawDate,
         ticket.cleanLotteryName || ticket.lotteryName,
-        ticket.letter
+        ticket.letter,
+        {
+          drawNumber: ticket.drawNumber,
+          ticketSerial: ticket.serial,
+          promotionalNumber: ticket.promotionalNumber,
+          zodiac: ticket.zodiac,
+        }
       );
       const data = res.data;
 
@@ -158,30 +177,60 @@ export default function BulkScanPage() {
             cleanLotteryName: data.cleanLotteryName || t.cleanLotteryName,
             prizeAmount: data.prizeAmount,
             prizeAmountFormatted: data.prizeAmountFormatted || (data.prizeAmount ? `Rs. ${data.prizeAmount.toLocaleString()}` : "Rs. 0.00"),
-            prizeCategory: data.prizeCategory || (data.isWinner ? "Winner" : "No Match"),
+            prizeCategory: data.prizeCategory || (data.isWinner ? "Winner" : (data.isFutureDraw ? "Future Draw (Scheduled)" : "No Match")),
             matchedCount: data.matchedCount,
             matchedNumbers: data.matchedNumbers,
             matchedLetter: data.matchedLetter,
             drawNumber: data.drawNumber || t.drawNumber,
+            isFutureDraw: data.isFutureDraw || t.isFutureDraw,
+            isExpired: data.isExpired,
+            canClaimPrize: data.canClaimPrize,
+            expiryDate: data.expiryDate,
+            daysRemaining: data.daysRemaining,
+            validityMessage: data.validityMessage,
           };
         })
       );
 
-      playBeep(data.isWinner);
+      // Play specific prize sound (e.g. Rs. 40 chime or Jackpot) or warning buzz
+      soundEffects.playResultFeedback({
+        isWinner: data.isWinner,
+        prizeAmount: Number(data.prizeAmount) || 0,
+        isExpired: data.isExpired,
+        isFutureDraw: data.isFutureDraw,
+      });
     } catch (err: any) {
+      soundEffects.playWarningSound();
       setScannedTickets((prev) =>
         prev.map((t) => (t.id === ticket.id ? { ...t, status: "error", errorMsg: "Evaluation failed" } : t))
       );
     }
-  }, [playBeep]);
+  }, []);
 
-  // Add a newly parsed ticket into the batch list
+  // Add a newly parsed ticket into the batch list with duplicate prevention
   const addParsedTicketToBatch = useCallback((parsed: ParsedTicketData, rawSerial?: string) => {
-    if (!parsed || (parsed.numbers.length === 0 && !parsed.letter)) return;
+    if (!parsed) return;
 
-    const serial = rawSerial || (parsed.rawText && parsed.rawText.length < 30 ? parsed.rawText : `TCK-${Date.now().toString().slice(-6)}`);
+    // Minimum validation for damaged/partial string
+    if (parsed.numbers.length === 0 && !parsed.letter && !parsed.zodiac) {
+      setDuplicateWarning("Damaged or incomplete QR ticket data: Missing numbers or lagna.");
+      setTimeout(() => setDuplicateWarning(null), 4000);
+      return;
+    }
+
+    const serial = (parsed.serialNumber || rawSerial || (parsed.rawText && parsed.rawText.length < 30 ? parsed.rawText : `TCK-${Date.now().toString().slice(-6)}`)).trim();
+
+    // Duplicate Prevention: Check against current session batch table
+    if (serial && scannedTickets.some((t) => t.serial && t.serial.trim() === serial)) {
+      setDuplicateWarning(`Duplicate Prevention: Ticket with serial #${serial} is already in the batch.`);
+      soundEffects.playWarningSound();
+      soundEffects.speak("Warning. Duplicate ticket.");
+      setTimeout(() => setDuplicateWarning(null), 5000);
+      return;
+    }
+
     const lotName = parsed.lotteryName || "Govisetha";
-    const board = lotName.toLowerCase().includes("nlb") || ["govisetha", "mahajana sampatha", "mega power", "dhana nidhanaya", "handahana", "nlb jaya", "ada sampatha", "suba dawasak"].some(n => lotName.toLowerCase().includes(n)) ? "NLB" : "DLB";
+    const board = parsed.board || (lotName.toLowerCase().includes("nlb") || ["govisetha", "mahajana sampatha", "mega power", "dhana nidhanaya", "handahana", "nlb jaya", "ada sampatha", "suba dawasak"].some(n => lotName.toLowerCase().includes(n)) ? "NLB" : "DLB");
 
     const newTicket: ScannedTicketItem = {
       id: `scan-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -191,93 +240,76 @@ export default function BulkScanPage() {
       board,
       numbers: parsed.numbers,
       letter: parsed.letter,
+      zodiac: parsed.zodiac,
       drawNumber: parsed.drawNumber,
+      drawDate: parsed.drawDate,
+      promotionalNumber: parsed.promotionalNumber,
+      isFutureDraw: parsed.isFutureDraw,
       sourceMethod: parsed.sourceMethod,
-      status: "evaluating"
+      status: parsed.isFutureDraw ? "ready" : "evaluating",
+      isWinner: false,
+      prizeAmount: 0,
+      prizeAmountFormatted: "Rs. 0.00",
+      prizeCategory: parsed.isFutureDraw ? "Future Draw (Scheduled)" : undefined,
     };
 
     setScannedTickets((prev) => [newTicket, ...prev]);
-    evaluateTicket(newTicket);
-  }, [evaluateTicket]);
 
-  // ─── Continuous Camera Scanner Loop ───
-  const scanCameraFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) {
-      animRef.current = requestAnimationFrame(scanCameraFrame);
+    if (!parsed.isFutureDraw) {
+      evaluateTicket(newTicket);
+    }
+  }, [scannedTickets, evaluateTicket, playBeep]);
+
+  // ─── Continuous Camera Scanner QR Success Handler ───
+  const handleQrScanSuccess = useCallback((decodedText: string) => {
+    const raw = decodedText.trim();
+    if (!raw) return;
+
+    setLastScannedText(raw);
+    setScanFlash(true);
+    setTimeout(() => setScanFlash(false), 300);
+
+    // 1. Specialized 2D QR Code Tokenizer & Normalization
+    const qrData = parseLotteryQR(raw);
+    if (qrData.isValid) {
+      let letterVal = qrData.letter;
+      if (qrData.zodiacSigns && qrData.zodiacSigns.length >= 2) {
+        letterVal = `${qrData.zodiacSigns[0].nameEn || qrData.zodiacSigns[0].transliteration}, ${qrData.zodiacSigns[1].nameEn || qrData.zodiacSigns[1].transliteration}`;
+      } else if (!letterVal && qrData.zodiac) {
+        letterVal = qrData.zodiac.nameEn || qrData.zodiac.transliteration;
+      }
+
+      addParsedTicketToBatch({
+        numbers: qrData.primaryNumbers,
+        letter: letterVal,
+        zodiac: qrData.zodiac ? (qrData.zodiac.nameEn || qrData.zodiac.transliteration) : undefined,
+        zodiac2: qrData.zodiac2 ? (qrData.zodiac2.nameEn || qrData.zodiac2.transliteration) : undefined,
+        zodiacSigns: qrData.zodiacSigns ? qrData.zodiacSigns.map((z) => z.nameEn || z.transliteration) : undefined,
+        lotteryName: qrData.lotteryName,
+        drawNumber: qrData.drawNumber,
+        drawDate: qrData.drawDate,
+        serialNumber: qrData.serialNumber,
+        promotionalNumber: qrData.promotionalNumber,
+        isFutureDraw: qrData.isFutureDraw,
+        board: qrData.board,
+        sourceMethod: "barcode_detector",
+        rawText: raw,
+      }, qrData.serialNumber);
       return;
     }
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-
-    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const qr = jsQR(imgData.data, imgData.width, imgData.height, { inversionAttempts: "attemptBoth" });
-
-    if (qr?.data) {
-      const qrText = qr.data.trim();
-      const now = Date.now();
-      const lastSeen = recentScansRef.current.get(qrText) || 0;
-
-      // 2.5s deduplication buffer to prevent double scan while holding same ticket
-      if (now - lastSeen > 2500) {
-        recentScansRef.current.set(qrText, now);
-        setLastScannedText(qrText);
-        setScanFlash(true);
-        setTimeout(() => setScanFlash(false), 300);
-
-        const parsed = parseTicketText(qrText);
-        if (parsed.numbers.length > 0 || parsed.letter) {
-          addParsedTicketToBatch(parsed, qrText.slice(0, 20));
-        }
-      }
+    // 2. Fallback to parseTicketText
+    const parsed = parseTicketText(raw);
+    if (parsed.numbers.length > 0 || parsed.letter) {
+      parsed.sourceMethod = "barcode_detector";
+      addParsedTicketToBatch(parsed, raw.slice(0, 20));
+      return;
     }
 
-    animRef.current = requestAnimationFrame(scanCameraFrame);
+    // 3. Partial or damaged string warning
+    setDuplicateWarning("Damaged or incomplete QR code detected. Minimum lottery name, draw number, or numbers required.");
+    setTimeout(() => setDuplicateWarning(null), 4000);
   }, [addParsedTicketToBatch]);
-
-  const startContinuousCamera = useCallback(async () => {
-    try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: cameraFacing, width: { ideal: 1280 }, height: { ideal: 720 } }
-        });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      }
-
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsCameraActive(true);
-        scanCameraFrame();
-      }
-    } catch (err) {
-      console.warn("Camera init error:", err);
-      setIsCameraActive(false);
-    }
-  }, [cameraFacing, scanCameraFrame]);
-
-  const stopContinuousCamera = useCallback(() => {
-    cancelAnimationFrame(animRef.current);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setIsCameraActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (scanMode === "camera") {
-      startContinuousCamera();
-    } else {
-      stopContinuousCamera();
-    }
-    return () => stopContinuousCamera();
-  }, [scanMode, cameraFacing, startContinuousCamera, stopContinuousCamera]);
 
   // ─── Hardware Laser Barcode Gun Keyboard Listener ───
   useEffect(() => {
@@ -379,7 +411,8 @@ export default function BulkScanPage() {
 
   // ─── Bulk Submit Claims to Daily Winning Report ───
   const handleBulkSubmitClaims = async () => {
-    const winners = scannedTickets.filter((t) => t.isWinner && !t.claimed);
+    // Only claim tickets within 6-month regulatory validity window
+    const winners = scannedTickets.filter((t) => t.isWinner && !t.claimed && !t.isExpired);
     if (winners.length === 0) return;
 
     setClaimSubmitting(true);
@@ -417,23 +450,44 @@ export default function BulkScanPage() {
     }, 2500);
   };
 
-  // ─── Batch Calculations & Filtering ───
+  // ─── Batch Calculations & Filtering (Grouped by Board NLB vs DLB) ───
   const summary = useMemo(() => {
     const total = scannedTickets.length;
-    const winners = scannedTickets.filter((t) => t.isWinner);
-    const totalPrize = winners.reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0);
-    const nlbCount = scannedTickets.filter((t) => t.board === "NLB").length;
-    const dlbCount = scannedTickets.filter((t) => t.board === "DLB").length;
-    const commission = totalPrize * 0.1;
+    const allWinners = scannedTickets.filter((t) => t.isWinner);
+    // 6-month validity: Only tickets within 6 calendar months can be cashed
+    const validWinners = scannedTickets.filter((t) => t.isWinner && !t.isExpired);
+    const expiredTickets = scannedTickets.filter((t) => t.isExpired);
+    const totalPrize = validWinners.reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0);
+
+    // NLB Board Totals
+    const nlbTickets = scannedTickets.filter((t) => t.board === "NLB");
+    const nlbWinners = nlbTickets.filter((t) => t.isWinner && !t.isExpired);
+    const nlbPrize = nlbWinners.reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0);
+
+    // DLB Board Totals
+    const dlbTickets = scannedTickets.filter((t) => t.board === "DLB");
+    const dlbWinners = dlbTickets.filter((t) => t.isWinner && !t.isExpired);
+    const dlbPrize = dlbWinners.reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0);
 
     return {
       total,
-      winnersCount: winners.length,
+      winnersCount: validWinners.length,
+      allWinnersCount: allWinners.length,
+      expiredCount: expiredTickets.length,
       totalPrize,
-      nlbCount,
-      dlbCount,
-      commission,
-      winRate: total > 0 ? ((winners.length / total) * 100).toFixed(1) : "0"
+      nlbCount: nlbTickets.length,
+      dlbCount: dlbTickets.length,
+      winRate: total > 0 ? ((validWinners.length / total) * 100).toFixed(1) : "0",
+      nlb: {
+        total: nlbTickets.length,
+        winners: nlbWinners.length,
+        prize: nlbPrize,
+      },
+      dlb: {
+        total: dlbTickets.length,
+        winners: dlbWinners.length,
+        prize: dlbPrize,
+      },
     };
   }, [scannedTickets]);
 
@@ -489,14 +543,33 @@ export default function BulkScanPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {scannedTickets.some((t) => t.isWinner && !t.claimed) && (
+            <button
+              type="button"
+              onClick={() => {
+                const next = !soundOn;
+                setSoundOn(next);
+                soundEffects.setSoundEnabled(next);
+                soundEffects.setVoiceEnabled(next);
+              }}
+              title="Toggle audio chimes and voice announcement for prizes and warnings"
+              className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm ${
+                soundOn
+                  ? "bg-emerald-50 text-emerald-900 border-emerald-300"
+                  : "bg-slate-100 text-slate-500 border-slate-300"
+              }`}
+            >
+              <span>{soundOn ? "🔊" : "🔇"}</span>
+              <span>{soundOn ? "Sound & Voice ON" : "Sound Muted"}</span>
+            </button>
+
+            {scannedTickets.some((t) => t.isWinner && !t.claimed && !t.isExpired) && (
               <Button
                 variant="primary"
                 size="sm"
                 onClick={() => setIsClaimModalOpen(true)}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/20 px-4"
               >
-                📥 Record {scannedTickets.filter((t) => t.isWinner && !t.claimed).length} Winning Claims
+                📥 Record {scannedTickets.filter((t) => t.isWinner && !t.claimed && !t.isExpired).length} Winning Claims
               </Button>
             )}
             <Button
@@ -521,7 +594,7 @@ export default function BulkScanPage() {
         </div>
 
         {/* ─── KPI Live Summary Bar ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
@@ -567,16 +640,118 @@ export default function BulkScanPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Agency 10% Comm.
+                Board Breakdown
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                Rs. {summary.commission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <span className="text-xs font-black px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-200">
+                  NLB: {summary.nlbCount}
+                </span>
+                <span className="text-xs font-black px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                  DLB: {summary.dlbCount}
+                </span>
+              </div>
             </div>
             <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
-              📈
+              📊
             </div>
           </Card>
+        </div>
+
+        {summary.expiredCount > 0 && (
+          <div className="mb-6 bg-rose-50 border border-rose-300 rounded-2xl p-3.5 flex items-center justify-between text-xs text-rose-900 shadow-sm animate-slide-up">
+            <div className="flex items-center gap-2.5">
+              <span className="text-lg">⏳</span>
+              <div>
+                <span className="font-extrabold text-rose-950">
+                  {summary.expiredCount} Ticket{summary.expiredCount > 1 ? "s" : ""} Over 6-Month Expiry Limit:
+                </span>{" "}
+                <span className="text-rose-800">
+                  Under official NLB &amp; DLB regulations, winning tickets must be claimed within 6 months (180 days) of the draw date. Expired tickets are forfeited by law and cannot be redeemed for cash.
+                </span>
+              </div>
+            </div>
+            <span className="px-2.5 py-1 bg-rose-200 text-rose-900 rounded-lg font-mono font-bold text-[11px] shrink-0 ml-3">
+              {summary.expiredCount} Expired
+            </span>
+          </div>
+        )}
+
+        {/* ─── Duplicate & Validation Alert ─── */}
+        {duplicateWarning && (
+          <div className="mb-6 p-4 rounded-2xl bg-amber-50 border-2 border-amber-300 text-amber-900 font-bold text-sm flex items-center justify-between shadow-sm animate-shake">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">⚠️</span>
+              <span>{duplicateWarning}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDuplicateWarning(null)}
+              className="text-amber-700 hover:text-amber-950 font-black text-sm px-2"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* ─── Board Breakdown (NLB vs DLB Running Totals) ─── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* NLB Breakdown Card */}
+          <div className="bg-white border-2 border-amber-300/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                <span className="font-display font-extrabold text-xs uppercase tracking-wider text-amber-950">
+                  National Lotteries Board (NLB)
+                </span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">
+                NLB Board
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-amber-100">
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Scanned</p>
+                <p className="text-xl font-display font-black text-text-primary mt-0.5">{summary.nlb.total}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Winners</p>
+                <p className="text-xl font-display font-black text-win mt-0.5">{summary.nlb.winners}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Prize Total</p>
+                <p className="text-xl font-display font-black text-amber-700 mt-0.5">Rs. {summary.nlb.prize.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* DLB Breakdown Card */}
+          <div className="bg-white border-2 border-blue-300/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+                <span className="font-display font-extrabold text-xs uppercase tracking-wider text-blue-950">
+                  Development Lotteries Board (DLB)
+                </span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                DLB Board
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-blue-100">
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Scanned</p>
+                <p className="text-xl font-display font-black text-text-primary mt-0.5">{summary.dlb.total}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Winners</p>
+                <p className="text-xl font-display font-black text-win mt-0.5">{summary.dlb.winners}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-text-secondary uppercase font-bold">Prize Total</p>
+                <p className="text-xl font-display font-black text-blue-700 mt-0.5">Rs. {summary.dlb.prize.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* ─── Scanner Controls & Viewfinder Section ─── */}
@@ -631,58 +806,16 @@ export default function BulkScanPage() {
               </button>
             </div>
 
-            {/* Mode 1: Continuous Camera Viewfinder */}
+            {/* Mode 1: Continuous Camera Viewfinder (LaptopQrScanner) */}
             {scanMode === "camera" && (
-              <Card className="bg-black text-white overflow-hidden p-0 relative border-2 border-gray-800 shadow-xl rounded-2xl">
-                <div className="relative aspect-[4/3] w-full bg-black flex items-center justify-center overflow-hidden">
-                  <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-                  <canvas ref={canvasRef} className="hidden" />
-
-                  {/* Scanning Laser Line Overlay */}
-                  <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div className="w-64 h-64 border-2 border-gold/80 rounded-2xl relative shadow-[0_0_20px_rgba(234,179,8,0.2)]">
-                      {/* Corner Accents */}
-                      <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-gold rounded-tl-md" />
-                      <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-gold rounded-tr-md" />
-                      <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-gold rounded-bl-md" />
-                      <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-gold rounded-br-md" />
-
-                      {/* Moving Laser Beam */}
-                      <div className="w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_10px_#ef4444] animate-pulse absolute top-1/2 -translate-y-1/2" />
-                    </div>
+              <div className="relative">
+                <LaptopQrScanner onScanSuccess={handleQrScanSuccess} />
+                {scanFlash && (
+                  <div className="absolute inset-0 bg-emerald-500/40 backdrop-blur-sm z-30 animate-ping flex items-center justify-center rounded-2xl pointer-events-none">
+                    <span className="text-3xl font-black text-white drop-shadow">✓ SCANNED!</span>
                   </div>
-
-                  {/* Visual Detection Flash */}
-                  {scanFlash && (
-                    <div className="absolute inset-0 bg-emerald-500/40 backdrop-blur-sm z-30 animate-ping flex items-center justify-center">
-                      <span className="text-3xl font-black text-white drop-shadow">✓ SCANNED!</span>
-                    </div>
-                  )}
-
-                  {/* Top Status Badge */}
-                  <div className="absolute top-3 left-3 right-3 flex items-center justify-between z-20">
-                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-black/70 border border-emerald-500/50 text-emerald-400 flex items-center gap-1.5 backdrop-blur-md">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                      Live Continuous Auto-Scan
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => setCameraFacing((prev) => (prev === "environment" ? "user" : "environment"))}
-                      className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-black/70 border border-white/20 text-white hover:bg-black/90 transition-all backdrop-blur-md"
-                    >
-                      🔄 Flip Camera
-                    </button>
-                  </div>
-
-                  {/* Bottom Scan Feedback */}
-                  <div className="absolute bottom-3 left-3 right-3 text-center z-20">
-                    <p className="text-[11px] text-gray-300 font-body bg-black/75 px-3 py-1.5 rounded-xl border border-white/10 backdrop-blur-md inline-block">
-                      Hold ticket QR code or barcode inside box. Scans continuously in real time.
-                    </p>
-                  </div>
-                </div>
-              </Card>
+                )}
+              </div>
             )}
 
             {/* Mode 2: Batch Image Upload (Drag & Drop) */}
@@ -787,14 +920,16 @@ export default function BulkScanPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block font-bold text-text-secondary mb-1">Lagna / Letter</label>
+                      <label className="block font-bold text-text-secondary mb-1">
+                        {manualLottery.toLowerCase().includes("suba") ? "Zodiac Signs (1 or 2)" : "Lagna / Letter"}
+                      </label>
                       <input
                         type="text"
-                        maxLength={2}
-                        placeholder="e.g. M / P"
+                        maxLength={30}
+                        placeholder={manualLottery.toLowerCase().includes("suba") ? "e.g. Capricorn, Aquarius" : "e.g. M / P"}
                         value={manualLetter}
                         onChange={(e) => setManualLetter(e.target.value)}
-                        className="w-full border border-border-default rounded-lg px-2.5 py-1.5 bg-brand-section text-text-primary font-bold text-center text-xs uppercase"
+                        className="w-full border border-border-default rounded-lg px-2.5 py-1.5 bg-brand-section text-text-primary font-bold text-center text-xs"
                       />
                     </div>
                   </div>
@@ -880,14 +1015,16 @@ export default function BulkScanPage() {
                     <div
                       key={ticket.id}
                       className={`p-3 rounded-xl border transition-all flex items-center justify-between gap-3 ${
-                        ticket.isWinner
+                        ticket.isExpired
+                          ? "bg-rose-50/80 border-rose-300 shadow-sm"
+                          : ticket.isWinner
                           ? "bg-emerald-50/80 border-emerald-300 shadow-sm"
                           : "bg-brand-card hover:bg-brand-card-hover border-border-default"
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
-                          ticket.isWinner ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"
+                          ticket.isExpired ? "bg-rose-600 text-white" : ticket.isWinner ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"
                         }`}>
                           {idx + 1}
                         </span>
@@ -903,14 +1040,19 @@ export default function BulkScanPage() {
                             }`}>
                               {ticket.board}
                             </span>
-                            {ticket.claimed && (
+                            {ticket.isExpired ? (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 font-extrabold border border-rose-300">
+                                ⏳ Expired (&gt;6m)
+                              </span>
+                            ) : ticket.claimed ? (
                               <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-900 font-bold border border-purple-300">
                                 Claimed ✓
                               </span>
-                            )}
+                            ) : null}
                           </div>
                           <p className="text-[10px] font-mono text-text-secondary truncate mt-0.5">
                             {ticket.serial} • Numbers: {ticket.numbers.join(", ")} {ticket.letter ? `• [${ticket.letter}]` : ""}
+                            {ticket.drawDate ? ` • ${ticket.drawDate}` : ""}
                           </p>
                         </div>
                       </div>
@@ -918,6 +1060,15 @@ export default function BulkScanPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         {ticket.status === "evaluating" ? (
                           <div className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+                        ) : ticket.isExpired ? (
+                          <div className="text-right">
+                            <span className="font-mono font-bold text-slate-400 line-through text-xs block">
+                              {ticket.prizeAmountFormatted || `Rs. ${ticket.prizeAmount}`}
+                            </span>
+                            <span className="text-[9px] font-bold text-rose-600 truncate block max-w-[110px]">
+                              Claim Lapsed
+                            </span>
+                          </div>
                         ) : ticket.isWinner ? (
                           <div className="text-right">
                             <span className="font-mono font-black text-emerald-800 text-xs block">
@@ -927,6 +1078,10 @@ export default function BulkScanPage() {
                               {ticket.prizeCategory}
                             </span>
                           </div>
+                        ) : ticket.isFutureDraw ? (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                            ⏳ Future Draw
+                          </span>
                         ) : (
                           <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                             No Match
@@ -963,7 +1118,7 @@ export default function BulkScanPage() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono font-bold px-2.5 py-1 bg-white border border-border-default rounded-md text-text-secondary">
-                {summary.winnersCount} Winning / {summary.total} Scanned
+                {summary.winnersCount} Valid Winning / {summary.total} Scanned
               </span>
             </div>
           </div>
@@ -994,7 +1149,11 @@ export default function BulkScanPage() {
                     <tr
                       key={t.id}
                       className={`hover:bg-brand-card-hover transition-colors ${
-                        t.isWinner ? "bg-emerald-50/40" : ""
+                        t.isExpired
+                          ? "bg-rose-50/50"
+                          : t.isWinner
+                          ? "bg-emerald-50/40"
+                          : ""
                       }`}
                     >
                       <td className="py-3 px-4 font-mono font-bold text-text-muted">{idx + 1}</td>
@@ -1022,8 +1181,28 @@ export default function BulkScanPage() {
                         ) : "—"}
                       </td>
                       <td className="py-3 px-4">
-                        {t.isWinner ? (
-                          <Badge variant="green">🏆 WINNER</Badge>
+                        {t.isExpired ? (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-extrabold bg-rose-100 text-rose-800 border border-rose-300">
+                              ⏳ EXPIRED (&gt;6m)
+                            </span>
+                            <span className="text-[10px] text-rose-600 font-semibold">
+                              Draw: {t.drawDate || "Over 6m ago"}
+                            </span>
+                          </div>
+                        ) : t.isWinner ? (
+                          <div className="flex flex-col gap-0.5 items-start">
+                            <Badge variant="green">🏆 WINNER</Badge>
+                            {t.daysRemaining !== undefined && (
+                              <span className="text-[10px] text-emerald-700 font-medium">
+                                {t.daysRemaining} days left
+                              </span>
+                            )}
+                          </div>
+                        ) : t.isFutureDraw ? (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded">
+                            ⏳ Future Draw
+                          </span>
                         ) : (
                           <span className="text-[10px] font-bold text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                             No Match
@@ -1031,10 +1210,25 @@ export default function BulkScanPage() {
                         )}
                       </td>
                       <td className="py-3 px-4 text-text-secondary text-[11px]">
-                        {t.prizeCategory || "—"}
+                        {t.isExpired ? (
+                          <span className="text-rose-700 font-medium">
+                            {t.prizeCategory || "Match"} (Forfeited)
+                          </span>
+                        ) : (
+                          t.prizeCategory || "—"
+                        )}
                       </td>
                       <td className="py-3 px-4 text-right font-mono font-extrabold text-sm">
-                        {t.isWinner ? (
+                        {t.isExpired ? (
+                          <div>
+                            <span className="text-slate-400 line-through text-xs block">
+                              {t.prizeAmountFormatted || `Rs. ${t.prizeAmount}`}
+                            </span>
+                            <span className="text-[10px] text-rose-600 font-bold block">
+                              Rs. 0.00 (Expired)
+                            </span>
+                          </div>
+                        ) : t.isWinner ? (
                           <span className="text-emerald-700 font-black">
                             {t.prizeAmountFormatted || `Rs. ${t.prizeAmount}`}
                           </span>
@@ -1057,13 +1251,10 @@ export default function BulkScanPage() {
                 </tbody>
                 <tfoot>
                   <tr className="bg-amber-50 font-bold text-text-primary border-t-2 border-amber-300">
-                    <td colSpan={6} className="py-3 px-4 uppercase text-xs text-amber-950 font-black">
-                      Batch Summary ({summary.total} Tickets Scanned • {summary.winnersCount} Winners):
+                    <td colSpan={8} className="py-3.5 px-4 uppercase text-xs text-amber-950 font-black">
+                      Batch Total ({summary.total} Tickets Scanned • {summary.winnersCount} Valid Winning Claims):
                     </td>
-                    <td colSpan={2} className="py-3 px-4 text-right text-xs font-mono text-amber-900">
-                      Agency Comm. (10%): <strong>Rs. {summary.commission.toLocaleString()}</strong>
-                    </td>
-                    <td className="py-3 px-4 text-right font-mono text-base font-black text-emerald-700">
+                    <td className="py-3.5 px-4 text-right font-mono text-base font-black text-emerald-700">
                       Rs. {summary.totalPrize.toLocaleString()}
                     </td>
                     <td className="print:hidden" />
@@ -1089,19 +1280,28 @@ export default function BulkScanPage() {
               Record Winning Claims to Daily Report
             </h3>
             <p className="text-xs text-text-secondary font-body mb-4">
-              Submit all {scannedTickets.filter((t) => t.isWinner && !t.claimed).length} winning tickets directly to your Agency Daily Winning Report (`/admin/reports`).
+              Submit {scannedTickets.filter((t) => t.isWinner && !t.claimed && !t.isExpired).length} valid winning tickets directly to your Agency Daily Winning Report (`/admin/reports`).
             </p>
 
             <div className="space-y-4 text-xs font-body">
+              {scannedTickets.some((t) => t.isWinner && t.isExpired) && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs flex items-center gap-2">
+                  <span>⏳</span>
+                  <span>
+                    <strong>{scannedTickets.filter((t) => t.isWinner && t.isExpired).length} ticket(s) excluded:</strong> Ticket draw dates exceed 6 months (180 days). Payouts for expired tickets are prohibited by NLB &amp; DLB regulations.
+                  </span>
+                </div>
+              )}
+
               <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-1">
                 <div className="flex justify-between font-bold text-emerald-950">
-                  <span>Winning Tickets to Record:</span>
-                  <span className="font-mono">{scannedTickets.filter((t) => t.isWinner && !t.claimed).length} Tickets</span>
+                  <span>Valid Winning Tickets to Disburse:</span>
+                  <span className="font-mono">{scannedTickets.filter((t) => t.isWinner && !t.claimed && !t.isExpired).length} Tickets</span>
                 </div>
                 <div className="flex justify-between font-bold text-emerald-950">
                   <span>Total Winning Cash Disbursed:</span>
                   <span className="font-mono text-sm text-emerald-700 font-extrabold">
-                    Rs. {scannedTickets.filter((t) => t.isWinner && !t.claimed).reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0).toLocaleString()}
+                    Rs. {scannedTickets.filter((t) => t.isWinner && !t.claimed && !t.isExpired).reduce((sum, t) => sum + (Number(t.prizeAmount) || 0), 0).toLocaleString()}
                   </span>
                 </div>
               </div>

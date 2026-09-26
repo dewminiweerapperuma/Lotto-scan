@@ -1,0 +1,596 @@
+[
+  {
+    "name": "Govisetha",
+    "board": "NLB",
+    "drawNumber": "4564",
+    "topPrize": "Rs. 85,119,543.16",
+    "letter": "D",
+    "winningNumbers": [
+      10,
+      22,
+      69,
+      76
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Mahajana Sampatha",
+    "board": "NLB",
+    "drawNumber": "6322",
+    "topPrize": "Rs. 27,716,192.00",
+    "letter": "T",
+    "winningNumbers": [
+      4,
+      3,
+      4,
+      1,
+      9,
+      4
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Mega Power",
+    "board": "NLB",
+    "drawNumber": "2670",
+    "topPrize": "Rs. 308,093,294.00",
+    "letter": "U",
+    "winningNumbers": [
+      18,
+      5,
+      7,
+      38,
+      77
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Dhana Nidhanaya",
+    "board": "NLB",
+    "drawNumber": "2352",
+    "topPrize": "Rs. 86,917,822.40",
+    "letter": "W",
+    "winningNumbers": [
+      25,
+      75,
+      80,
+      82
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Handahana",
+    "board": "NLB",
+    "drawNumber": "1631",
+    "topPrize": "Rs. 4,086,387.20",
+    "letter": "CAPRICORN",
+    "winningNumbers": [
+      2,
+      12,
+      36,
+      47
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Ada Sampatha",
+    "board": "NLB",
+    "drawNumber": "0897",
+    "topPrize": "Rs. 2,500,000",
+    "letter": "T",
+    "winningNumbers": [
+      4,
+      1,
+      9,
+      4
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "NLB Jaya",
+    "board": "NLB",
+    "drawNumber": "0590",
+    "topPrize": "Rs. 500,000",
+    "letter": "G",
+    "winningNumbers": [
+      4,
+      8,
+      2,
+      8
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Suba Dawasak",
+    "board": "NLB",
+    "drawNumber": "0438",
+    "topPrize": "Gold Coins",
+    "letter": "GEMINI",
+    "winningNumbers": [
+      9,
+      19,
+      39
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z"
+  },
+  {
+    "name": "Ada Kotipathi",
+    "board": "DLB",
+    "drawNumber": "3122",
+    "topPrize": "Rs. 82,865,670",
+    "letter": "A",
+    "winningNumbers": [
+      18,
+      22,
+      37,
+      64
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any Single Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any English Letter",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.4,000.00",
+        "prizeAmount": 4000
+      },
+      {
+        "combination": "4 Numbers",
+        "prize": "Rs.2,000,000.00",
+        "prizeAmount": 2000000
+      },
+      {
+        "combination": "Any one Number + English Letter",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 2 Number + English Letter",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "Any 3 Numbers + English Letter",
+        "prize": "Rs.200,000.00",
+        "prizeAmount": 200000
+      },
+      {
+        "combination": "4 Numbers + English Letter",
+        "prize": "Rs.50,000,000.00",
+        "prizeAmount": 50000000
+      }
+    ]
+  },
+  {
+    "name": "Shanida Wasanawa",
+    "board": "DLB",
+    "drawNumber": "5457",
+    "topPrize": "Rs. 53,553,580",
+    "letter": "D",
+    "winningNumbers": [
+      15,
+      32,
+      36,
+      45
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any English Letter",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any Single Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.4,000.00",
+        "prizeAmount": 4000
+      },
+      {
+        "combination": "4 Numbers",
+        "prize": "Rs.2,000,000.00",
+        "prizeAmount": 2000000
+      },
+      {
+        "combination": "Any one Number + English Letter",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 2 Number + English Letter",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "Any 3 Numbers + English Letter",
+        "prize": "Rs.200,000.00",
+        "prizeAmount": 200000
+      },
+      {
+        "combination": "4 Numbers + English Letter",
+        "prize": "Rs.50,000,000.00",
+        "prizeAmount": 50000000
+      }
+    ]
+  },
+  {
+    "name": "Lagna Wasanawa",
+    "board": "DLB",
+    "drawNumber": "5008",
+    "topPrize": "Rs. 3,000,000",
+    "letter": "♈",
+    "winningNumbers": [
+      8,
+      12,
+      14,
+      52
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any Single Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any Zodiac Sign",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "4 Numbers",
+        "prize": "Rs.1,000,000.00",
+        "prizeAmount": 1000000
+      },
+      {
+        "combination": "Any 1 Number + Zodiac Sign",
+        "prize": "Rs.120.00",
+        "prizeAmount": 120
+      },
+      {
+        "combination": "Any 2 Numbers + Zodiac Sign",
+        "prize": "Rs.400.00",
+        "prizeAmount": 400
+      },
+      {
+        "combination": "Any 3 Numbers + Zodiac Sign",
+        "prize": "Rs.20,000.00",
+        "prizeAmount": 20000
+      },
+      {
+        "combination": "4 Numbers + Zodiac Sign",
+        "prize": "Rs.3,000,000.00",
+        "prizeAmount": 3000000
+      }
+    ]
+  },
+  {
+    "name": "Supiri Dhana Sampatha",
+    "board": "DLB",
+    "drawNumber": "1030",
+    "topPrize": "Rs. 31,112,484",
+    "letter": "T",
+    "winningNumbers": [
+      6,
+      1,
+      8,
+      5,
+      3,
+      7
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "All 6 Numbers + Letter",
+        "prize": "Rs.20,000,000.00",
+        "prizeAmount": 20000000
+      },
+      {
+        "combination": "All 6 numbers",
+        "prize": "Rs.2,500,000.00",
+        "prizeAmount": 2500000
+      },
+      {
+        "combination": "Last 5 Numbers",
+        "prize": "Rs.100,000.00",
+        "prizeAmount": 100000
+      },
+      {
+        "combination": "Last 4 Numbers",
+        "prize": "Rs.20,000.00",
+        "prizeAmount": 20000
+      },
+      {
+        "combination": "Last 3 Numbers",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "Last 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Last Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "First 5 Numbers",
+        "prize": "Rs.100,000.00",
+        "prizeAmount": 100000
+      },
+      {
+        "combination": "First 4 Numbers",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "First 3 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "First 2 Numbers",
+        "prize": "Rs.120.00",
+        "prizeAmount": 120
+      },
+      {
+        "combination": "First Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "English Letter",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "All 6 Numbers in any order",
+        "prize": "Rs.500.00",
+        "prizeAmount": 500
+      }
+    ]
+  },
+  {
+    "name": "Super Ball",
+    "board": "DLB",
+    "drawNumber": "3296",
+    "topPrize": "Rs. 80,409,695",
+    "letter": "T",
+    "winningNumbers": [
+      8,
+      10,
+      32,
+      39
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any English Letter",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any One Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.4,000.00",
+        "prizeAmount": 4000
+      },
+      {
+        "combination": "All 4 Numbers",
+        "prize": "Rs.2,000,000.00",
+        "prizeAmount": 2000000
+      },
+      {
+        "combination": "Any One Number + English Letter",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 2 Numbers + English Letter",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "Any 3 Numbers + English Letter",
+        "prize": "Rs.200,000.00",
+        "prizeAmount": 200000
+      },
+      {
+        "combination": "All 4 Numbers + English Letter",
+        "prize": "Rs.50,000,000.00",
+        "prizeAmount": 50000000
+      }
+    ]
+  },
+  {
+    "name": "Kapruka",
+    "board": "DLB",
+    "drawNumber": "2472",
+    "topPrize": "Rs. 372,536,382",
+    "letter": "N",
+    "winningNumbers": [
+      5,
+      12,
+      23,
+      44,
+      16
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any Single Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any English Letter",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 1 Number + English Letter",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.200.00",
+        "prizeAmount": 200
+      },
+      {
+        "combination": "Any 2 Numbers + English Letter",
+        "prize": "Rs.2,000.00",
+        "prizeAmount": 2000
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.4,000.00",
+        "prizeAmount": 4000
+      },
+      {
+        "combination": "Any 3 Numbers + English Letter",
+        "prize": "Rs.200,000.00",
+        "prizeAmount": 200000
+      },
+      {
+        "combination": "4 Numbers",
+        "prize": "Rs.2,000,000.00",
+        "prizeAmount": 2000000
+      },
+      {
+        "combination": "4 Numbers + English Letter",
+        "prize": "Rs.10,000,000.00",
+        "prizeAmount": 10000000
+      },
+      {
+        "combination": "4 Numbers +  Super Number",
+        "prize": "Rs.10,000,000.00",
+        "prizeAmount": 10000000
+      },
+      {
+        "combination": "4 Numbers + English Letter + Super Number",
+        "prize": "Rs.150,000,000.00",
+        "prizeAmount": 150000000
+      },
+      {
+        "combination": "Super Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      }
+    ]
+  },
+  {
+    "name": "Sasiri",
+    "board": "DLB",
+    "drawNumber": "1126",
+    "topPrize": "Rs. 200,000",
+    "letter": "",
+    "winningNumbers": [
+      19,
+      23,
+      47
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "Any Single Number",
+        "prize": "Rs.40.00",
+        "prizeAmount": 40
+      },
+      {
+        "combination": "Any 2 Numbers",
+        "prize": "Rs.400.00",
+        "prizeAmount": 400
+      },
+      {
+        "combination": "Any 3 Numbers",
+        "prize": "Rs.200,000.00",
+        "prizeAmount": 200000
+      }
+    ]
+  },
+  {
+    "name": "Jaya Sampatha",
+    "board": "DLB",
+    "drawNumber": "504",
+    "topPrize": "Rs. 250,000",
+    "letter": "T",
+    "winningNumbers": [
+      8,
+      5,
+      3,
+      7
+    ],
+    "updatedAt": "2026-09-26T16:59:43.729Z",
+    "prizeStructure": [
+      {
+        "combination": "All 04 numbers from back to forward with English Letter",
+        "prize": "Rs.250,000.00",
+        "prizeAmount": 250000
+      },
+      {
+        "combination": "04 numbers in the order from back to forward",
+        "prize": "Rs.50,000.00",
+        "prizeAmount": 50000
+      },
+      {
+        "combination": "For matching 03 numbers from back to forward",
+        "prize": "Rs.4,000.00",
+        "prizeAmount": 4000
+      },
+      {
+        "combination": "02 printed numbers from back to forward",
+        "prize": "Rs.1,000.00",
+        "prizeAmount": 1000
+      },
+      {
+        "combination": "English Letter",
+        "prize": "Rs.80.00",
+        "prizeAmount": 80
+      }
+    ]
+  }
+]

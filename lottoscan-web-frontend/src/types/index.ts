@@ -32,6 +32,11 @@ export interface TicketResult {
   matchedLetter?: boolean;
   userLetter?: string;
   message?: string;
+  isExpired?: boolean;
+  canClaimPrize?: boolean;
+  expiryDate?: string;
+  daysRemaining?: number;
+  validityMessage?: string;
 }
 
 export interface ScrapeLog {

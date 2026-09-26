@@ -1,7 +1,5 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import jsQR from "jsqr";
 import { lottery as lotteryApi } from "@/lib/api";
 import { LOTTERIES } from "@/lib/constants";
 import NumberBall from "@/components/ui/NumberBall";
@@ -12,11 +10,15 @@ import ZodiacBall, { ZodiacBadge } from "@/components/ui/ZodiacBall";
 import { getZodiacInfo } from "@/lib/zodiac";
 import { getLotteryConfig } from "@/lib/lotteryConfig";
 import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
-import { scanTicketImage, parseTicketText } from "@/lib/ticketScanner";
+import { scanTicketImage, parseTicketText, isSerialOrVerificationData } from "@/lib/ticketScanner";
+import { parseLotteryQR } from "@/lib/qrParser";
+import LaptopQrScanner from "@/components/scanner/LaptopQrScanner";
+import soundEffects from "@/lib/soundEffects";
 
 export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) {
   const [numbers, setNumbers] = useState(["", "", "", "", ""]);
   const [letter, setLetter] = useState("");
+  const [letter2, setLetter2] = useState("");
   const [drawDate, setDrawDate] = useState(new Date().toISOString().slice(0, 10));
   const [lotteryName, setLotteryName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,177 +27,90 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const animRef = useRef<number>(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const router = useRouter();
 
-  const stopCamera = useCallback(() => {
-    cancelAnimationFrame(animRef.current);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    setShowCamera(false);
-  }, []);
+  const handleCameraScanSuccess = useCallback((scannedText: string) => {
+    const raw = scannedText?.trim();
+    if (!raw) return;
 
-  const parseQRText = useCallback((qrText: string) => {
-    let nums: (number | string)[] = [];
-    let extractedLetter = "";
-    let detectedLottery = "";
-    let detectedDraw = "";
+    // 1. Try dedicated QR tokenization & normalization engine
+    const qrData = parseLotteryQR(raw);
+    if (qrData.isValid) {
+      const detectedLot = qrData.lotteryName || lotteryName;
+      if (qrData.lotteryName) setLotteryName(qrData.lotteryName);
+      if (qrData.drawDate) setDrawDate(qrData.drawDate);
 
-    if (!qrText || typeof qrText !== "string") {
-      return { nums: [], letter: "", lottery: "", draw: "" };
-    }
+      const activeConfig = getLotteryConfig(detectedLot);
+      const targetCount = activeConfig.digitCount || 4;
+      const padLen = activeConfig.maxDigitsPerBox > 1 ? 2 : 1;
+      const formattedNums = qrData.primaryNumbers.map((n) => String(n).padStart(padLen, "0"));
+      while (formattedNums.length < targetCount) formattedNums.push("");
+      setNumbers(formattedNums.slice(0, targetCount));
 
-    const clean = qrText.trim();
-
-    // 1. JSON structure
-    try {
-      const p = JSON.parse(clean);
-      if (Array.isArray(p)) {
-        nums = p.map(Number);
-      } else if (typeof p === "object" && p !== null) {
-        if (Array.isArray(p.numbers)) nums = p.numbers.map(Number);
-        else if (Array.isArray(p.nums)) nums = p.nums.map(Number);
-        if (p.letter || p.l) extractedLetter = String(p.letter || p.l).toUpperCase();
-        if (p.lottery || p.lottery_name || p.name) detectedLottery = String(p.lottery || p.lottery_name || p.name);
-        if (p.draw || p.draw_number || p.drawNumber) detectedDraw = String(p.draw || p.draw_number || p.drawNumber);
-      }
-    } catch {}
-
-    // 2. URL parsing (e.g. nlb.lk or dlb.lk URLs with query params)
-    if (nums.length === 0 && (clean.includes("http://") || clean.includes("https://") || clean.includes("?"))) {
-      try {
-        const url = new URL(clean.startsWith("http") ? clean : `https://${clean}`);
-        const qNums = url.searchParams.get("numbers") || url.searchParams.get("nums") || url.searchParams.get("n");
-        const qLetter = url.searchParams.get("letter") || url.searchParams.get("l");
-        const qDraw = url.searchParams.get("draw") || url.searchParams.get("d");
-        const qLottery = url.searchParams.get("lottery") || url.searchParams.get("lot");
-        if (qNums) nums = qNums.split(/[,-]+/).map(Number);
-        if (qLetter) extractedLetter = qLetter.toUpperCase();
-        if (qDraw) detectedDraw = qDraw;
-        if (qLottery) detectedLottery = qLottery;
-      } catch {}
-    }
-
-    // 3. Delimited text (e.g. NLB|4552|Govisetha|3,13,47,50|I or DLB-AK-3110-29,53,55,61-U)
-    if (nums.length === 0) {
-      const parts = clean.split(/[|#;,]+/);
-      for (const part of parts) {
-        const pTrim = part.trim();
-        for (const l of LOTTERIES) {
-          if (pTrim.toLowerCase().includes(l.name.toLowerCase()) || l.name.toLowerCase().includes(pTrim.toLowerCase())) {
-            detectedLottery = l.name;
-          }
+      // Handle dual zodiac signs (e.g. Suba Dawasak) or single zodiac/letter
+      if (qrData.zodiacSigns && qrData.zodiacSigns.length >= 2) {
+        setLetter(qrData.zodiacSigns[0].symbol || qrData.zodiacSigns[0].nameEn);
+        setLetter2(qrData.zodiacSigns[1].symbol || qrData.zodiacSigns[1].nameEn);
+      } else if (qrData.zodiac) {
+        setLetter(qrData.zodiac.symbol || qrData.zodiac.nameEn);
+        if (qrData.zodiac2) {
+          setLetter2(qrData.zodiac2.symbol || qrData.zodiac2.nameEn);
+        } else {
+          setLetter2("");
         }
-        if (/[0-9]+[ ,-]+[0-9]+/.test(pTrim)) {
-          const subNums = pTrim.split(/[ ,-]+/).map(Number).filter((n) => !isNaN(n) && n >= 0 && n <= 99);
-          if (subNums.length >= 2) nums = subNums;
-        } else if (/^[A-Za-z]$/.test(pTrim)) {
-          extractedLetter = pTrim.toUpperCase();
-        } else if (/^\d{3,5}$/.test(pTrim) && !detectedDraw) {
-          detectedDraw = pTrim;
-        }
+      } else if (qrData.letter) {
+        setLetter(qrData.letter);
+        setLetter2("");
       }
-    }
 
-    // 4. Raw sequence or space/comma separated numbers (e.g. "D 06 06 00 06 04 07" or "29 53 55 61 U" or "16, 20, 46")
-    if (nums.length === 0) {
-      const tokens = clean.split(/[\s,/|-]+/);
-      for (const t of tokens) {
-        const trimmed = t.trim();
-        if (/^[A-Za-z]$/.test(trimmed)) {
-          extractedLetter = trimmed.toUpperCase();
-        } else if (/^\d{1,2}$/.test(trimmed)) {
-          nums.push(Number(trimmed));
-        }
+      if (qrData.isFutureDraw) {
+        setError(`⚠️ Note: The draw for ${qrData.lotteryName} is scheduled for ${qrData.drawDate} and has not taken place yet.`);
+      } else {
+        setError("");
       }
-    }
 
-    // 5. Compact string fallback like "D660647" or "29535561U"
-    if (nums.length === 0) {
-      const matchLeadingLetter = clean.match(/^([A-Za-z])(\d{4,9})$/);
-      if (matchLeadingLetter) {
-        extractedLetter = matchLeadingLetter[1].toUpperCase();
-        nums = matchLeadingLetter[2].split("").map(Number);
-      }
-      const matchTrailingLetter = clean.match(/^(\d{4,9})([A-Za-z])$/);
-      if (matchTrailingLetter) {
-        extractedLetter = matchTrailingLetter[2].toUpperCase();
-        nums = matchTrailingLetter[1].split("").map(Number);
-      }
-    }
-
-    return {
-      nums: nums.filter((n) => !isNaN(Number(n)) && Number(n) >= 0),
-      letter: extractedLetter,
-      lottery: detectedLottery,
-      draw: detectedDraw
-    };
-  }, []);
-
-  const scanFrame = useCallback(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas || video.readyState < 2) {
-      animRef.current = requestAnimationFrame(scanFrame);
+      setShowCamera(false);
       return;
     }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const qr = jsQR(imageData.data, imageData.width, imageData.height);
-    if (qr?.data) {
-      const parsed = parseTicketText(qr.data);
-      if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac)) {
-        if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
-        if (parsed.drawDate) setDrawDate(parsed.drawDate);
-        const activeConfig = getLotteryConfig(parsed.lotteryName || lotteryName);
-        const targetCount = activeConfig.digitCount || 5;
-        const formattedNums = parsed.numbers.map(String);
-        while (formattedNums.length < targetCount) formattedNums.push("");
-        setNumbers(formattedNums.slice(0, targetCount));
-        if (parsed.zodiac) setLetter(parsed.zodiac);
-        else if (parsed.letter) setLetter(parsed.letter);
-        stopCamera();
-      } else {
-        animRef.current = requestAnimationFrame(scanFrame);
-      }
-    } else {
-      animRef.current = requestAnimationFrame(scanFrame);
-    }
-  }, [stopCamera, lotteryName]);
 
-  const startCamera = useCallback(async () => {
-    setError("");
-    try {
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    // 2. Fallback to parseTicketText
+    const parsed = parseTicketText(raw);
+    if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac || parsed.lotteryName)) {
+      const detectedLot = parsed.lotteryName || lotteryName;
+      if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
+      if (parsed.drawDate) setDrawDate(parsed.drawDate);
+
+      const activeConfig = getLotteryConfig(detectedLot);
+      const targetCount = activeConfig.digitCount || 5;
+      const padLen = activeConfig.maxDigitsPerBox > 1 ? 2 : 1;
+      const formattedNums = parsed.numbers.map((n) => String(n).padStart(padLen, "0"));
+      while (formattedNums.length < targetCount) formattedNums.push("");
+      setNumbers(formattedNums.slice(0, targetCount));
+
+      if (parsed.zodiacSigns && parsed.zodiacSigns.length >= 2) {
+        setLetter(parsed.zodiacSigns[0]);
+        setLetter2(parsed.zodiacSigns[1]);
+      } else if (parsed.zodiac) {
+        setLetter(parsed.zodiac);
+        if (parsed.zodiac2) setLetter2(parsed.zodiac2);
+        else setLetter2("");
+      } else if (parsed.letter) {
+        setLetter(parsed.letter);
+        setLetter2("");
       }
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        scanFrame();
-      }
-    } catch (err: any) {
-      console.warn("Camera error:", err);
-      setError("Camera access denied or unavailable. Please upload a ticket photo or enter numbers manually.");
+      setError("");
       setShowCamera(false);
+      return;
     }
-  }, [scanFrame]);
 
-  useEffect(() => {
-    if (showCamera) startCamera();
-    return () => stopCamera();
-  }, [showCamera, startCamera, stopCamera]);
+    // If pure serial number without lottery details
+    if (isSerialOrVerificationData(raw)) {
+      setError(`Detected ticket serial (${raw.slice(0, 16)}...). Please point the camera at the 2D QR code with the numbers, or tap "Capture & Scan Ticket".`);
+      return;
+    }
+
+    setError("Unrecognized ticket barcode/QR format. Please point at the 2D QR code or tap 'Capture & Scan Ticket'.");
+  }, [lotteryName]);
 
   const config = getLotteryConfig(lotteryName);
 
@@ -266,10 +181,25 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     setError("");
     setResult(null);
     try {
-      const res = await lotteryApi.checkTicket(nums, drawDate, lotteryName || undefined, letter || undefined);
+      const combinedLetter = config.hasTwoZodiacs && letter2 ? `${letter},${letter2}` : letter;
+      const res = await lotteryApi.checkTicket(
+        nums,
+        drawDate,
+        lotteryName || undefined,
+        combinedLetter || undefined,
+        { zodiac: letter, zodiac2: letter2 }
+      );
       setResult(res.data);
       sessionStorage.setItem("lottoscan_result", JSON.stringify(res.data));
+
+      soundEffects.playResultFeedback({
+        isWinner: res.data.isWinner,
+        prizeAmount: Number(res.data.prizeAmount) || 0,
+        isExpired: res.data.isExpired,
+        isFutureDraw: res.data.isFutureDraw,
+      });
     } catch (err: any) {
+      soundEffects.playWarningSound();
       setError(err.response?.data?.error || "Failed to check ticket. Please try again.");
     } finally {
       setLoading(false);
@@ -279,6 +209,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const handleClear = () => {
     setNumbers(Array(config.digitCount).fill(""));
     setLetter("");
+    setLetter2("");
     setResult(null);
     setError("");
   };
@@ -339,7 +270,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             </div>
           ) : (
             /* Standard flat row layout */
-            <div className="flex gap-3">
+            <div className="flex gap-2 sm:gap-3 flex-wrap items-center">
               {Array.from({ length: config.digitCount }, (_, i) => (
                 <input
                   key={`${lotteryName}-${i}`}
@@ -357,34 +288,93 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   }}
                   placeholder={config.boxPlaceholders[i] || "0"}
                   maxLength={config.maxDigitsPerBox}
-                  className={`number-input flex-1 min-w-0 font-mono text-center font-bold ${
+                  className={`number-input flex-1 min-w-[50px] font-mono text-center font-bold ${
                     config.maxDigitsPerBox === 1 ? "text-xl sm:text-2xl" : "text-lg sm:text-xl"
                   }`}
                 />
               ))}
+
+              {config.hasTwoZodiacs && (
+                <div className="flex gap-2 items-center">
+                  <div
+                    className="w-[50px] h-[50px] sm:w-[56px] sm:h-[56px] rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex flex-col items-center justify-center text-amber-500 select-none shadow-sm cursor-pointer"
+                    title="1st Zodiac Sign"
+                  >
+                    <span className="text-base sm:text-lg leading-none">{letter ? getZodiacInfo(letter)?.symbol || letter : "?"}</span>
+                    <span className="text-[8px] font-bold uppercase tracking-tight truncate max-w-[42px] leading-tight mt-0.5">
+                      {letter ? getZodiacInfo(letter)?.transliteration || letter : "Zodiac 1"}
+                    </span>
+                  </div>
+                  <div
+                    className="w-[50px] h-[50px] sm:w-[56px] sm:h-[56px] rounded-full bg-amber-500/10 border-2 border-amber-500/40 flex flex-col items-center justify-center text-amber-500 select-none shadow-sm cursor-pointer"
+                    title="2nd Zodiac Sign"
+                  >
+                    <span className="text-base sm:text-lg leading-none">{letter2 ? getZodiacInfo(letter2)?.symbol || letter2 : "?"}</span>
+                    <span className="text-[8px] font-bold uppercase tracking-tight truncate max-w-[42px] leading-tight mt-0.5">
+                      {letter2 ? getZodiacInfo(letter2)?.transliteration || letter2 : "Zodiac 2"}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Letter & Date */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ZodiacSelector
-            value={letter}
-            onChange={setLetter}
-            label="Lagna / Letter (optional)"
-          />
-          <div>
-            <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-              Draw Date
-            </label>
-            <input
-              type="date"
-              value={drawDate}
-              onChange={(e) => setDrawDate(e.target.value)}
-              className="input-dark"
-            />
+        {config.hasTwoZodiacs ? (
+          <div className="space-y-3 bg-amber-500/5 border border-amber-500/20 rounded-2xl p-4">
+            <div className="flex items-center justify-between">
+              <label className="text-amber-400 text-xs font-body font-extrabold uppercase tracking-wider block">
+                Two Zodiac Signs (දෙලග්න - Suba Dawasak)
+              </label>
+              <span className="text-[10px] text-slate-400 font-mono">2 chances to match</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <ZodiacSelector
+                value={letter}
+                onChange={setLetter}
+                label="1st Zodiac Sign (පළමු ලග්නය)"
+                placeholder="-- Select 1st Zodiac --"
+              />
+              <ZodiacSelector
+                value={letter2}
+                onChange={setLetter2}
+                label="2nd Zodiac Sign (දෙවන ලග්නය)"
+                placeholder="-- Select 2nd Zodiac --"
+              />
+            </div>
+            <div>
+              <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
+                Draw Date
+              </label>
+              <input
+                type="date"
+                value={drawDate}
+                onChange={(e) => setDrawDate(e.target.value)}
+                className="input-dark"
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ZodiacSelector
+              value={letter}
+              onChange={setLetter}
+              label="Lagna / Letter (optional)"
+            />
+            <div>
+              <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
+                Draw Date
+              </label>
+              <input
+                type="date"
+                value={drawDate}
+                onChange={(e) => setDrawDate(e.target.value)}
+                className="input-dark"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Lottery selector */}
         <div>
@@ -436,20 +426,35 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         try {
           const parsed = await scanTicketImage(img, (msg) => setScanStatus(msg));
 
-          if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac)) {
+          if (parsed && (parsed.numbers.length > 0 || parsed.letter || parsed.zodiac || parsed.lotteryName)) {
             const detectedLot = parsed.lotteryName || lotteryName;
             if (parsed.lotteryName) setLotteryName(parsed.lotteryName);
             if (parsed.drawDate) setDrawDate(parsed.drawDate);
 
             const activeConfig = getLotteryConfig(detectedLot);
             const targetCount = activeConfig.digitCount || 5;
-            const formattedNums = parsed.numbers.map(String);
+            const padLen = activeConfig.maxDigitsPerBox > 1 ? 2 : 1;
+            const formattedNums = parsed.numbers.map((n) => String(n).padStart(padLen, "0"));
             while (formattedNums.length < targetCount) formattedNums.push("");
             setNumbers(formattedNums.slice(0, targetCount));
 
-            if (parsed.zodiac) setLetter(parsed.zodiac);
-            else if (parsed.letter) setLetter(parsed.letter);
-            setError("");
+            if (parsed.zodiacSigns && parsed.zodiacSigns.length >= 2) {
+              setLetter(parsed.zodiacSigns[0]);
+              setLetter2(parsed.zodiacSigns[1]);
+            } else if (parsed.zodiac) {
+              setLetter(parsed.zodiac);
+              if (parsed.zodiac2) setLetter2(parsed.zodiac2);
+              else setLetter2("");
+            } else if (parsed.letter) {
+              setLetter(parsed.letter);
+              setLetter2("");
+            }
+
+            if (parsed.isFutureDraw) {
+              setError(`⚠️ Note: The draw for ${parsed.lotteryName || detectedLot} is scheduled for ${parsed.drawDate} and has not taken place yet.`);
+            } else {
+              setError("");
+            }
           } else {
             setError("No barcode, QR code, or readable ticket numbers found. Please ensure the ticket image is clear, unblurred, and well-lit, or enter numbers manually.");
           }
@@ -497,22 +502,11 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           </div>
         ) : showCamera ? (
           <div className="space-y-3">
-            <div className="relative rounded-2xl overflow-hidden bg-black aspect-video">
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-              <canvas ref={canvasRef} className="hidden" />
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-48 h-48 relative">
-                  {["top-0 left-0", "top-0 right-0 rotate-90", "bottom-0 right-0 rotate-180", "bottom-0 left-0 -rotate-90"].map((pos, i) => (
-                    <div key={i} className={`absolute ${pos} w-8 h-8`}>
-                      <div className="absolute top-0 left-0 w-full h-0.5 bg-gold" />
-                      <div className="absolute top-0 left-0 w-0.5 h-full bg-gold" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <Button onClick={stopCamera} variant="secondary" fullWidth>
-              Stop Camera
+            <LaptopQrScanner
+              onScanSuccess={handleCameraScanSuccess}
+            />
+            <Button onClick={() => setShowCamera(false)} variant="secondary" fullWidth size="sm">
+              ✕ Close Camera
             </Button>
           </div>
         ) : (
@@ -554,21 +548,43 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
     if (result.isWinner) {
       return (
         <div className="space-y-6 animate-slide-up">
-          <div className="bg-gold-light/35 border border-gold-border rounded-[24px] p-6 md:p-8 relative overflow-hidden border-l-4 border-l-gold shadow-md">
+          <div className={`border rounded-[24px] p-6 md:p-8 relative overflow-hidden border-l-4 shadow-md ${
+            result.isExpired
+              ? "bg-rose-50/50 border-rose-300 border-l-rose-600"
+              : "bg-gold-light/35 border-gold-border border-l-gold"
+          }`}>
             <div className="absolute top-0 right-0 w-24 h-24 bg-gold/5 rounded-full blur-2xl pointer-events-none" />
             <div className="relative space-y-6">
-              <div className="text-center space-y-2">
-                <div className="text-5xl animate-bounce">🏆</div>
-                <h3 className="text-2xl font-display font-extrabold text-gold-dark uppercase tracking-wider">
-                  YOU WON!
-                </h3>
-                <p className="text-4xl md:text-5xl font-mono font-extrabold text-gold-dark leading-none">
-                  {result.prizeAmountFormatted || `Rs. ${result.prizeAmount?.toLocaleString()}`}
-                </p>
-                <p className="text-text-secondary font-body text-sm font-semibold">
-                  {result.prizeCategory || "Jackpot"}
-                </p>
-              </div>
+              {result.isExpired ? (
+                <div className="text-center space-y-2">
+                  <div className="text-5xl">⏳</div>
+                  <span className="inline-block px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-rose-100 text-rose-800 border border-rose-300">
+                    Expired Ticket (Over 6 Months)
+                  </span>
+                  <h3 className="text-2xl font-display font-extrabold text-rose-950 uppercase tracking-wider">
+                    CLAIM PERIOD EXPIRED
+                  </h3>
+                  <p className="text-3xl md:text-4xl font-mono font-extrabold text-slate-400 line-through leading-none">
+                    {result.prizeAmountFormatted || `Rs. ${result.prizeAmount?.toLocaleString()}`}
+                  </p>
+                  <p className="text-xs text-rose-700 font-body font-semibold max-w-sm mx-auto">
+                    Matched winning numbers, but redemption deadline ({result.expiryDate || "6 months"}) has passed.
+                  </p>
+                </div>
+              ) : (
+                <div className="text-center space-y-2">
+                  <div className="text-5xl animate-bounce">🏆</div>
+                  <h3 className="text-2xl font-display font-extrabold text-gold-dark uppercase tracking-wider">
+                    YOU WON!
+                  </h3>
+                  <p className="text-4xl md:text-5xl font-mono font-extrabold text-gold-dark leading-none">
+                    {result.prizeAmountFormatted || `Rs. ${result.prizeAmount?.toLocaleString()}`}
+                  </p>
+                  <p className="text-text-secondary font-body text-sm font-semibold">
+                    {result.prizeCategory || "Jackpot"}
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-4 pt-2 border-t border-border-default/40">
                 {isPyramidLottery(result.lotteryName) ? (
@@ -588,13 +604,42 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                         {result.ticketNumbers?.map((n: number, i: number) => (
                           <NumberBall key={i} number={n} matched={result.matchedNumbers?.includes(n)} />
                         ))}
-                        {(result.userLetter || letter) && (
-                          <ZodiacBall
-                            value={result.userLetter || letter}
-                            size="md"
-                            className={result.matchedLetter ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
-                          />
-                        )}
+                        {(() => {
+                          const zList: string[] = [];
+                          if (result.userZodiacs && Array.isArray(result.userZodiacs) && result.userZodiacs.length > 0) {
+                            zList.push(...result.userZodiacs);
+                          } else if (result.userLetter && result.userLetter.includes(',')) {
+                            zList.push(...result.userLetter.split(',').map((s: string) => s.trim()));
+                          } else {
+                            if (result.userLetter || letter) zList.push(result.userLetter || letter);
+                            if (result.userLetter2 || letter2) zList.push(result.userLetter2 || letter2);
+                          }
+
+                          const winningZ = result.letter ? String(result.letter).toLowerCase() : "";
+
+                          return zList.filter(Boolean).map((zVal, zIdx) => {
+                            const zInfo = getZodiacInfo(zVal);
+                            const isThisMatched = Boolean(
+                              result.matchedLetter && (
+                                zVal.toLowerCase() === winningZ ||
+                                (zInfo && (
+                                  zInfo.nameEn.toLowerCase() === winningZ ||
+                                  zInfo.transliteration.toLowerCase() === winningZ ||
+                                  zInfo.id === winningZ ||
+                                  zInfo.symbol === winningZ
+                                ))
+                              )
+                            );
+                            return (
+                              <ZodiacBall
+                                key={zIdx}
+                                value={zVal}
+                                size="md"
+                                className={isThisMatched ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
+                              />
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                     <div>
@@ -660,30 +705,50 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                 </div>
               )}
 
-              <div className="bg-win-light border border-green-200 rounded-2xl p-4 flex gap-3">
-                <span className="text-win text-lg">🏦</span>
-                <div className="space-y-1">
-                  <p className="text-win font-body text-xs font-bold leading-tight">
-                    Claim at any NLB/DLB branch within 90 days
-                  </p>
-                  <p className="text-win/80 font-body text-[11px] leading-tight">
-                    Bring original ticket + National ID
-                  </p>
+              {result.isExpired ? (
+                <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex gap-3 text-rose-900">
+                  <span className="text-rose-600 text-lg">⏳</span>
+                  <div className="space-y-1">
+                    <p className="font-body text-xs font-bold leading-tight text-rose-800">
+                      Prize Forfeited: Claim Period Exceeded (6-Month Limit)
+                    </p>
+                    <p className="font-body text-[11px] leading-tight text-rose-700/90">
+                      Under National Lotteries Board (NLB) &amp; Development Lotteries Board (DLB) regulations, prizes must be claimed within 6 calendar months (180 days) from the draw date ({result.drawDate}). As of {result.expiryDate || "now"}, this ticket is legally expired.
+                    </p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-win-light border border-green-200 rounded-2xl p-4 flex gap-3">
+                  <span className="text-win text-lg">🏦</span>
+                  <div className="space-y-1">
+                    <p className="text-win font-body text-xs font-bold leading-tight">
+                      Valid Claim Period: {result.daysRemaining !== undefined ? `${result.daysRemaining} days remaining` : "Within 6 Months"}
+                    </p>
+                    <p className="text-win/80 font-body text-[11px] leading-tight">
+                      Valid until {result.expiryDate || "6 months from draw date"}. Claim at any NLB/DLB branch or authorized dealer with original ticket + National ID (NIC).
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <Button
-                  onClick={() => {
-                    navigator.share?.({
-                      text: `🎉 I won ${result.prizeAmountFormatted || `Rs. ${result.prizeAmount}`} on ${result.lotteryName}! #LottoScan`,
-                    });
-                  }}
-                  variant="primary"
-                  fullWidth
-                >
-                  🎊 Share My Win
-                </Button>
+                {!result.isExpired ? (
+                  <Button
+                    onClick={() => {
+                      navigator.share?.({
+                        text: `🎉 I won ${result.prizeAmountFormatted || `Rs. ${result.prizeAmount}`} on ${result.lotteryName}! #LottoScan`,
+                      });
+                    }}
+                    variant="primary"
+                    fullWidth
+                  >
+                    🎊 Share My Win
+                  </Button>
+                ) : (
+                  <div className="w-full text-center py-2.5 px-4 rounded-xl bg-slate-100 border border-slate-200 text-slate-500 font-semibold text-xs">
+                    ⚠️ Expired tickets cannot be redeemed or claimed
+                  </div>
+                )}
                 <Button onClick={handleClear} variant="secondary" className="sm:w-32">
                   Check Another
                 </Button>
@@ -717,13 +782,42 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
                   {result.ticketNumbers.map((n: number, i: number) => (
                     <NumberBall key={i} number={n} variant="unmatched" />
                   ))}
-                  {(result.userLetter || letter) && (
-                    <ZodiacBall
-                      value={result.userLetter || letter}
-                      size="md"
-                      className={result.matchedLetter ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
-                    />
-                  )}
+                  {(() => {
+                    const zList: string[] = [];
+                    if (result.userZodiacs && Array.isArray(result.userZodiacs) && result.userZodiacs.length > 0) {
+                      zList.push(...result.userZodiacs);
+                    } else if (result.userLetter && result.userLetter.includes(',')) {
+                      zList.push(...result.userLetter.split(',').map((s: string) => s.trim()));
+                    } else {
+                      if (result.userLetter || letter) zList.push(result.userLetter || letter);
+                      if (result.userLetter2 || letter2) zList.push(result.userLetter2 || letter2);
+                    }
+
+                    const winningZ = result.letter ? String(result.letter).toLowerCase() : "";
+
+                    return zList.filter(Boolean).map((zVal, zIdx) => {
+                      const zInfo = getZodiacInfo(zVal);
+                      const isThisMatched = Boolean(
+                        result.matchedLetter && (
+                          zVal.toLowerCase() === winningZ ||
+                          (zInfo && (
+                            zInfo.nameEn.toLowerCase() === winningZ ||
+                            zInfo.transliteration.toLowerCase() === winningZ ||
+                            zInfo.id === winningZ ||
+                            zInfo.symbol === winningZ
+                          ))
+                        )
+                      );
+                      return (
+                        <ZodiacBall
+                          key={zIdx}
+                          value={zVal}
+                          size="md"
+                          className={isThisMatched ? "ring-4 ring-emerald-500 rounded-full shadow-lg" : ""}
+                        />
+                      );
+                    });
+                  })()}
                 </div>
               </div>
               <div>

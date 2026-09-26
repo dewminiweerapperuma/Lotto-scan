@@ -2,7 +2,17 @@
 import { useState, useEffect, useCallback } from "react";
 import { auth as authApi } from "./api";
 
-export interface User { userId: string; email: string; role: "admin" | "user"; }
+export interface User {
+  id?: string;
+  userId?: string;
+  email: string;
+  role: "SUPER_ADMIN" | "AREA_AGENT" | "COUNTER_STAFF" | "admin" | "agent" | "user";
+  agencyName?: string;
+  agentCode?: string;
+  phone?: string;
+  boardAffiliation?: "NLB" | "DLB" | "BOTH";
+  location?: string;
+}
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -11,25 +21,49 @@ export function useAuth() {
   useEffect(() => {
     const stored = localStorage.getItem("lottoscan_user");
     const token = localStorage.getItem("lottoscan_token");
-    if (stored && token) { try { setUser(JSON.parse(stored)); } catch { localStorage.removeItem("lottoscan_user"); } }
+    if (stored && token) {
+      try {
+        const u = JSON.parse(stored);
+        setUser(u);
+        // Ensure cookies are kept in sync
+        document.cookie = `lottoscan_role=${u.role || ""}; path=/; max-age=604800; SameSite=Lax`;
+        document.cookie = `lottoscan_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+      } catch {
+        localStorage.removeItem("lottoscan_user");
+      }
+    }
     setLoading(false);
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await authApi.login(email, password);
+  const login = useCallback(async (emailOrCode: string, password: string) => {
+    const res = await authApi.login(emailOrCode, password);
     const { token, user: u } = res.data;
     localStorage.setItem("lottoscan_token", token);
     localStorage.setItem("lottoscan_user", JSON.stringify(u));
-    setUser(u); return u;
+    document.cookie = `lottoscan_role=${u.role || ""}; path=/; max-age=604800; SameSite=Lax`;
+    document.cookie = `lottoscan_token=${token}; path=/; max-age=604800; SameSite=Lax`;
+    setUser(u);
+    return u;
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("lottoscan_token");
     localStorage.removeItem("lottoscan_user");
+    document.cookie = "lottoscan_role=; path=/; max-age=0";
+    document.cookie = "lottoscan_token=; path=/; max-age=0";
     setUser(null);
   }, []);
 
-  return { user, loading, login, logout, isAdmin: user?.role === "admin" };
+  return {
+    user,
+    loading,
+    login,
+    logout,
+    isSuperAdmin: user?.role === "SUPER_ADMIN" || user?.role === "admin",
+    isAdmin: user?.role === "admin" || user?.role === "SUPER_ADMIN" || user?.role === "AREA_AGENT" || user?.role === "agent",
+    isAgent: user?.role === "agent" || user?.role === "AREA_AGENT",
+    isAuth: !!user,
+  };
 }
 
 export function useTicketResult() {

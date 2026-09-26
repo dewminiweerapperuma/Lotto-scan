@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import NumberBall from "@/components/ui/NumberBall";
 import Card from "@/components/ui/Card";
 import ZodiacSelector from "@/components/ui/ZodiacSelector";
+import soundEffects from "@/lib/soundEffects";
 import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
 import { lottery as lotteryApi } from "@/lib/api";
 import { formatPrize, getToday } from "@/lib/utils";
@@ -82,7 +83,15 @@ export default function QuickChecker() {
     try {
       const res = await lotteryApi.checkTicket(parsed, date, lotteryName || undefined, letter || undefined);
       setResult(res.data);
+
+      soundEffects.playResultFeedback({
+        isWinner: res.data.isWinner,
+        prizeAmount: Number(res.data.prizeAmount) || 0,
+        isExpired: res.data.isExpired,
+        isFutureDraw: res.data.isFutureDraw,
+      });
     } catch (err: any) {
+      soundEffects.playWarningSound();
       setError(err.response?.data?.error || "Failed to check. Please try again.");
     } finally { setLoading(false); }
   };
@@ -189,14 +198,28 @@ export default function QuickChecker() {
             )}
 
             {result && !loading && (
-              <Card glow={result.isWinner ? "gold" : "none"} padding="lg" className="animate-slide-up">
+              <Card glow={result.isWinner && !result.isExpired ? "gold" : "none"} padding="lg" className={`animate-slide-up ${result.isExpired ? "border-rose-500/40 bg-rose-950/20" : ""}`}>
                 {result.isWinner ? (
                   <div className="text-center space-y-4">
-                    <div className="text-5xl animate-bounce">🏆</div>
-                    <h3 className="font-display font-extrabold text-3xl text-gold">You Won!</h3>
-                    <p className="font-display font-extrabold text-4xl text-white">
-                      {formatPrize(result.prizeAmount)}
-                    </p>
+                    <div className="text-5xl">{result.isExpired ? "⏳" : "🏆"}</div>
+                    {result.isExpired ? (
+                      <>
+                        <span className="inline-block px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                          Expired Ticket (&gt; 6 Months)
+                        </span>
+                        <h3 className="font-display font-extrabold text-2xl text-rose-400">Claim Period Expired</h3>
+                        <p className="font-display font-extrabold text-3xl text-white/30 line-through">
+                          {formatPrize(result.prizeAmount)}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3 className="font-display font-extrabold text-3xl text-gold">You Won!</h3>
+                        <p className="font-display font-extrabold text-4xl text-white">
+                          {formatPrize(result.prizeAmount)}
+                        </p>
+                      </>
+                    )}
                     <p className="text-white/40 font-body text-sm">{result.prizeCategory}</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       {(result.ticketNumbers || []).map((n: number, i: number) => (
@@ -207,8 +230,19 @@ export default function QuickChecker() {
                       <div className="flex justify-between"><span className="text-white/40">Lottery</span><span className="text-white">{result.lotteryName}</span></div>
                       <div className="flex justify-between"><span className="text-white/40">Draw #</span><span className="text-white">{result.drawNumber}</span></div>
                       <div className="flex justify-between"><span className="text-white/40">Matches</span><span className="text-gold font-bold">{result.matchedCount} numbers</span></div>
+                      {result.expiryDate && (
+                        <div className="flex justify-between"><span className="text-white/40">Claim Deadline</span><span className={result.isExpired ? "text-rose-400 font-bold" : "text-emerald-400 font-bold"}>{result.expiryDate}</span></div>
+                      )}
                     </div>
-                    <p className="text-gold/60 text-xs font-body">🏦 Claim at any NLB/DLB branch within 90 days</p>
+                    {result.isExpired ? (
+                      <p className="text-rose-400 text-xs font-body font-semibold">
+                        ⚠️ Ticket Expired: NLB &amp; DLB law limits prize redemption to 6 months from draw.
+                      </p>
+                    ) : (
+                      <p className="text-gold/80 text-xs font-body">
+                        🏦 Claim within 6 months ({result.daysRemaining !== undefined ? `${result.daysRemaining} days left` : "180 days"}) at any NLB/DLB branch
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center space-y-4">

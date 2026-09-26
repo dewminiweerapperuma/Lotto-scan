@@ -22,7 +22,7 @@ interface Employee {
 }
 
 export default function DailyOrdersPage() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isAgent } = useAuth();
   const router = useRouter();
 
   // Selected Date (defaults to today YYYY-MM-DD)
@@ -59,8 +59,8 @@ export default function DailyOrdersPage() {
   const [empError, setEmpError] = useState("");
 
   useEffect(() => {
-    if (!loading && !isAdmin) router.push("/admin");
-  }, [loading, isAdmin, router]);
+    if (!loading && !isAdmin && !isAgent) router.push("/agent/login");
+  }, [loading, isAdmin, isAgent, router]);
 
   // Load Daily Orders Matrix from API
   const loadDailyOrders = useCallback(async (date: string) => {
@@ -86,10 +86,10 @@ export default function DailyOrdersPage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isAgent) {
       loadDailyOrders(selectedDate);
     }
-  }, [isAdmin, selectedDate, loadDailyOrders]);
+  }, [isAdmin, isAgent, selectedDate, loadDailyOrders]);
 
   // Handle cell value change for ticket quantity
   const handleCellChange = (lotteryName: string, empId: string, val: string) => {
@@ -291,12 +291,26 @@ export default function DailyOrdersPage() {
     const totalCommission = Object.values(colTotals.commissionAmounts).reduce((a, b) => a + b, 0);
     const totalPayable = Object.values(colTotals.totalPayable).reduce((a, b) => a + b, 0);
 
+    // Business Logic: When a person returns tickets, those tickets are given as additional tickets to another person.
+    // Re-issued returns = returned tickets redistributed to others as additional tickets
+    const reissuedReturns = Math.min(totalReturns, totalAdditional);
+    // Fresh additional tickets issued beyond available returns
+    const freshAdditional = Math.max(0, totalAdditional - totalReturns);
+    // True total physical tickets in circulation across the agency (not double-counting redistributed returns)
+    const totalActualTickets = totalOrdered + freshAdditional;
+    // Final net unsold returns that were not re-allocated to another seller
+    const unsoldReturns = Math.max(0, totalReturns - totalAdditional);
+
     return {
       totalOrdered,
       totalAdditional,
       totalIssued,
       totalRemaining,
       totalReturns,
+      reissuedReturns,
+      freshAdditional,
+      totalActualTickets,
+      unsoldReturns,
       totalNetSold,
       totalCommission,
       totalPayable
@@ -315,7 +329,7 @@ export default function DailyOrdersPage() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin && !isAgent) return null;
 
   return (
     <div className="bg-brand-bg min-h-screen pt-24 pb-16 print:pt-2 print:pb-2 print:bg-white text-text-primary">
@@ -450,23 +464,21 @@ export default function DailyOrdersPage() {
           </div>
         </Card>
 
-        {/* ─── KPI Metric Cards ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* ─── KPI Metric Cards (5 Cards: Total, Remaining, Returns, Net Sold, Payable) ─── */}
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5 mb-6">
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Ordered Tickets
+                Total Tickets
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                {grandTotals.totalOrdered.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
+                {grandTotals.totalIssued.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
-              {grandTotals.totalAdditional > 0 && (
-                <p className="text-[11px] font-mono text-blue-600 font-bold mt-0.5">
-                  + {grandTotals.totalAdditional.toLocaleString()} Additional
-                </p>
-              )}
+              <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
+                Total after adding additional
+              </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-xl shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-lg shrink-0">
               📦
             </div>
           </Card>
@@ -474,17 +486,34 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Remaining Tickets (Day)
+                Remaining Tickets
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 mt-1">
                 {grandTotals.totalRemaining.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Remaining tickets of the day
+                Day remaining tickets
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-lg shrink-0">
               📋
+            </div>
+          </Card>
+
+          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+            <div>
+              <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
+                Return Tickets
+              </p>
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-rose-600 mt-1">
+                {grandTotals.totalReturns.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
+              </p>
+              <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
+                Unsold returned tickets
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center text-lg shrink-0">
+              ↩️
             </div>
           </Card>
 
@@ -500,24 +529,24 @@ export default function DailyOrdersPage() {
                 Total sold by sellers
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-10 h-10 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-lg shrink-0">
               ✅
             </div>
           </Card>
 
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between col-span-2 md:col-span-1">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Payable (Value @ Rs. 35)
+                Total Payable (@ Rs. 35)
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
+              <p className="text-xl sm:text-2xl font-display font-extrabold text-win mt-1">
                 Rs. {grandTotals.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
                 Commission: Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-10 h-10 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-lg shrink-0">
               💰
             </div>
           </Card>
@@ -707,7 +736,22 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 3: Remaining Tickets of the Day (NEW ROW) */}
+                  {/* Row 3: Total Tickets (Ordered + Additional) */}
+                  <tr className="bg-amber-300/80 text-gray-950 border-y-2 border-amber-400">
+                    <td className="sticky left-0 z-30 bg-amber-300 text-gray-950 border border-amber-400 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      TOTAL TICKETS
+                    </td>
+                    {employees.map((emp) => (
+                      <td key={emp.id} className="border border-amber-300 p-2 text-center font-black text-sm text-gray-950">
+                        {(colTotals.totalIssued[emp.id] || 0).toLocaleString()}
+                      </td>
+                    ))}
+                    <td className="sticky right-0 z-30 bg-amber-400 text-gray-950 border border-amber-500 p-2 text-center font-black text-sm shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
+                      {grandTotals.totalIssued.toLocaleString()}
+                    </td>
+                  </tr>
+
+                  {/* Row 4: Remaining Tickets of the Day */}
                   <tr className="bg-amber-100 text-amber-950 border-y border-amber-300">
                     <td className="sticky left-0 z-30 bg-amber-100 text-amber-950 border border-amber-300 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       REMAINING TICKETS
@@ -733,7 +777,7 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 4: Returns */}
+                  {/* Row 5: Returns */}
                   <tr className="bg-red-50 text-red-950 border-y border-red-200">
                     <td className="sticky left-0 z-30 bg-red-100 text-red-950 border border-red-200 p-2 font-bold uppercase text-[11px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       RETURNS
@@ -759,7 +803,7 @@ export default function DailyOrdersPage() {
                     </td>
                   </tr>
 
-                  {/* Row 5: Net Sold */}
+                  {/* Row 6: Net Sold */}
                   <tr className="bg-emerald-100 text-emerald-950 border-b border-emerald-300">
                     <td className="sticky left-0 z-30 bg-emerald-100 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
                       NET SOLD

@@ -283,28 +283,96 @@ const ZODIAC_EQUIVALENTS = {
 
 const isMatchingLetterOrZodiac = (userVal, drawVal) => {
   if (!userVal || !drawVal) return false;
-  const u = String(userVal).trim().toLowerCase();
   const d = String(drawVal).trim().toLowerCase();
 
-  if (u === d) return true;
+  // Support array of user inputs or multi-value string (e.g. "Capricorn, Aquarius" or "Capricorn / Aquarius")
+  const userVals = Array.isArray(userVal)
+    ? userVal
+    : String(userVal).split(/[,/|]+/).map(s => s.trim()).filter(Boolean);
 
-  for (const equivalents of Object.values(ZODIAC_EQUIVALENTS)) {
-    if (equivalents.includes(u) && equivalents.includes(d)) {
-      return true;
+  for (const uv of userVals) {
+    const u = uv.toLowerCase();
+    if (u === d) return true;
+    for (const equivalents of Object.values(ZODIAC_EQUIVALENTS)) {
+      if (equivalents.includes(u) && equivalents.includes(d)) {
+        return true;
+      }
     }
   }
 
   return false;
 };
 
-const evaluateSingleTicket = async (ticketData, livePrizes) => {
-  const { ticket_numbers, draw_date, lottery_name, letter, ticket_serial } = ticketData || {};
+const checkTicketExpiry = (drawDateInput) => {
+  if (!drawDateInput) {
+    return {
+      isExpired: false,
+      drawDate: null,
+      expiryDate: null,
+      daysRemaining: 180,
+      validityMessage: 'Draw date not specified.'
+    };
+  }
 
-  if (!ticket_numbers || !Array.isArray(ticket_numbers) || ticket_numbers.length === 0) {
+  const cleanDateStr = String(drawDateInput).replace(/\//g, '-').trim().slice(0, 10);
+  const drawDate = new Date(cleanDateStr + 'T00:00:00');
+  if (isNaN(drawDate.getTime())) {
+    return {
+      isExpired: false,
+      drawDate: cleanDateStr,
+      expiryDate: null,
+      daysRemaining: 180,
+      validityMessage: 'Invalid draw date.'
+    };
+  }
+
+  const now = new Date();
+  // Sri Lanka NLB & DLB official rule: Winning claims must be collected within 6 calendar months
+  const expiryDate = new Date(drawDate);
+  expiryDate.setMonth(expiryDate.getMonth() + 6);
+
+  const diffMs = expiryDate.getTime() - now.getTime();
+  const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const isExpired = diffMs < 0;
+  const expiryDateStr = expiryDate.toISOString().slice(0, 10);
+
+  let validityMessage = '';
+  if (isExpired) {
+    const expiredDaysAgo = Math.abs(daysRemaining);
+    validityMessage = `EXPIRED: Draw held on ${cleanDateStr} (${expiredDaysAgo} day${expiredDaysAgo === 1 ? '' : 's'} past the 6-month redemption deadline of ${expiryDateStr}). Under Sri Lanka NLB & DLB regulations, prize claims are strictly valid for 6 months only.`;
+  } else if (daysRemaining <= 14) {
+    validityMessage = `EXPIRING SOON: Only ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} left to claim before 6-month deadline (${expiryDateStr}).`;
+  } else {
+    validityMessage = `VALID CLAIM WINDOW: ${daysRemaining} days remaining to claim (Valid until ${expiryDateStr}).`;
+  }
+
+  return {
+    isExpired,
+    drawDate: cleanDateStr,
+    expiryDate: expiryDateStr,
+    daysRemaining: Math.max(0, daysRemaining),
+    validityMessage
+  };
+};
+
+const evaluateSingleTicket = async (ticketData, livePrizes) => {
+  const rawNums = ticketData?.ticket_numbers || ticketData?.numbers || ticketData?.primaryNumbers;
+  const draw_date = ticketData?.draw_date || ticketData?.drawDate;
+  const expiryStatus = checkTicketExpiry(draw_date);
+  const lottery_name = ticketData?.lottery_name || ticketData?.lotteryName || ticketData?.cleanLotteryName;
+  const letter1 = ticketData?.letter || (typeof ticketData?.zodiac === 'string' ? ticketData?.zodiac : ticketData?.zodiac?.transliteration || ticketData?.zodiac?.nameEn);
+  const letter2 = ticketData?.zodiac2 || ticketData?.letter2 || ticketData?.secondaryZodiac || (typeof ticketData?.zodiac2 === 'object' ? ticketData?.zodiac2?.transliteration || ticketData?.zodiac2?.nameEn : '');
+  const combinedLetters = [letter1, letter2].filter(Boolean);
+  const letter = combinedLetters.length > 1 ? combinedLetters.join(', ') : (letter1 || '');
+  const ticket_serial = ticketData?.ticket_serial || ticketData?.ticketSerial || ticketData?.serialNumber;
+  const draw_number = ticketData?.draw_number || ticketData?.drawNumber;
+  const promotional_number = ticketData?.promotional_number || ticketData?.promotionalNumber;
+
+  if (!rawNums || !Array.isArray(rawNums) || rawNums.length === 0) {
     return { error: 'Please provide ticket_numbers as a non-empty array.' };
   }
 
-  let ticketNums = ticket_numbers.map(Number).filter(n => !isNaN(n) && n >= 0);
+  let ticketNums = rawNums.map(Number).filter(n => !isNaN(n) && n >= 0);
 
   // If user provided a single multi-digit number (e.g. 6602) into a single input box
   if (ticketNums.length === 1 && ticketNums[0] >= 100) {
@@ -316,8 +384,65 @@ const evaluateSingleTicket = async (ticketData, livePrizes) => {
     return { error: 'No valid numbers provided.' };
   }
 
-  // 1. Filter candidates by lottery name if specified
-  let candidates = livePrizes || [];
+  // Edge Case: Unannounced / Future Draws
+  if (draw_date) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dateFormatted = String(draw_date).replace(/\//g, '-').slice(0, 10);
+    if (dateFormatted > todayStr) {
+      return {
+        isFutureDraw: true,
+        isWinner: false,
+        status: 'FUTURE_DRAW',
+        lotteryName: lottery_name || 'Upcoming Draw',
+        drawDate: dateFormatted,
+        drawNumber: draw_number || '',
+        ticketNumbers: ticketNums,
+        ticketSerial: ticket_serial || '',
+        message: `The draw for ${lottery_name || 'this ticket'} is scheduled for ${dateFormatted} and has not taken place yet.`
+      };
+    }
+  }
+
+  // Query QuestDB for draw records if draw_number is provided
+  let questDbDraw = null;
+  if (draw_number) {
+    try {
+      questDbDraw = await Draw.findOne({ drawNumber: String(draw_number).trim() });
+    } catch (dbErr) {
+      console.warn('QuestDB drawNumber lookup notice:', dbErr.message);
+    }
+  }
+
+  // 1. Resolve candidates by draw_date and lottery name
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const targetDateStr = draw_date ? String(draw_date).replace(/\//g, '-').slice(0, 10) : todayStr;
+
+  let candidates = [];
+  if (targetDateStr && targetDateStr !== todayStr) {
+    try {
+      const allDraws = await getCanonicalDraws();
+      const dateFiltered = allDraws.filter(d => d.draw_date === targetDateStr);
+      if (dateFiltered.length > 0) {
+        candidates = dateFiltered.map(d => ({
+          name: d.lottery_name,
+          board: d.board,
+          drawNumber: d.draw_number,
+          winningNumbers: d.winningNumbers && d.winningNumbers.length > 0
+            ? d.winningNumbers
+            : [d.number_1, d.number_2, d.number_3, d.number_4, d.number_5].filter(n => typeof n === 'number' && !isNaN(n)),
+          letter: d.letter,
+          topPrize: d.top_prize
+        }));
+      }
+    } catch (e) {
+      console.warn('Historical draw lookup notice:', e.message);
+    }
+  }
+
+  if (candidates.length === 0) {
+    candidates = livePrizes || [];
+  }
+
   if (lottery_name) {
     const filtered = candidates.filter(p =>
       p.name && p.name.toLowerCase().includes(lottery_name.toLowerCase())
@@ -1256,15 +1381,24 @@ const evaluateSingleTicket = async (ticketData, livePrizes) => {
 
         let message;
         if (isWinner) {
-          message = matchCount === totalWinNums
-            ? `🎉 Congratulations! All ${matchCount} numbers matched for ${lottery.name}!`
-            : `🎉 ${matchCount} of ${totalWinNums} numbers matched for ${lottery.name} — ${prizeCategory}!`;
+          if (expiryStatus.isExpired) {
+            message = `⚠️ TICKET EXPIRED: Matched ${matchCount} winning numbers for ${lottery.name}, BUT PRIZE CANNOT BE CLAIMED. This draw was held on ${expiryStatus.drawDate} (over 6 months ago). Under Sri Lanka NLB & DLB regulations, all lottery prizes must be collected within 6 months.`;
+          } else {
+            message = matchCount === totalWinNums
+              ? `🎉 Congratulations! All ${matchCount} numbers matched for ${lottery.name}!`
+              : `🎉 ${matchCount} of ${totalWinNums} numbers matched for ${lottery.name} — ${prizeCategory}!`;
+          }
         } else {
           message = `${matchCount} of ${totalWinNums} numbers matched for ${lottery.board || ''} ${lottery.name || ''}. Better luck next time!`;
         }
 
         bestResult = {
           isWinner,
+          canClaimPrize: isWinner && !expiryStatus.isExpired,
+          isExpired: expiryStatus.isExpired,
+          expiryDate: expiryStatus.expiryDate,
+          daysRemaining: expiryStatus.daysRemaining,
+          validityMessage: expiryStatus.validityMessage,
           board: lottery.board || (lottery.name?.toLowerCase().includes('nlb') ? 'NLB' : 'DLB'),
           cleanLotteryName: lottery.name || 'Lottery',
           ticketNumbers: ticketNums,
@@ -1273,12 +1407,14 @@ const evaluateSingleTicket = async (ticketData, livePrizes) => {
           matchedCount: matchCount,
           matchedLetter: matchedLetter,
           userLetter: letter || '',
+          userLetter2: letter2 || '',
+          userZodiacs: combinedLetters,
           lotteryName: `${lottery.board || ''} ${lottery.name || ''}`.trim(),
           drawNumber: lottery.drawNumber || '',
           drawDate: draw_date || new Date().toISOString().slice(0, 10),
           prizeAmount: typeof prizeAmount === 'number' ? prizeAmount : (parseFloat(String(prizeAmount).replace(/[^0-9.]/g, '')) || 0),
           prizeAmountFormatted: prizeAmountFormatted,
-          prizeCategory: prizeCategory,
+          prizeCategory: expiryStatus.isExpired && isWinner ? `${prizeCategory} (EXPIRED - > 6 Months)` : prizeCategory,
           letter: lottery.letter || '',
           message,
         };
@@ -1291,6 +1427,11 @@ const evaluateSingleTicket = async (ticketData, livePrizes) => {
     if (!bestResult) {
       return {
         isWinner: false,
+        canClaimPrize: false,
+        isExpired: expiryStatus.isExpired,
+        expiryDate: expiryStatus.expiryDate,
+        daysRemaining: expiryStatus.daysRemaining,
+        validityMessage: expiryStatus.validityMessage,
         board: lottery_name?.toLowerCase().includes('nlb') ? 'NLB' : 'DLB',
         cleanLotteryName: lottery_name || 'Unknown',
         ticketNumbers: ticketNums,
@@ -1301,17 +1442,19 @@ const evaluateSingleTicket = async (ticketData, livePrizes) => {
         prizeAmountFormatted: 'Rs. 0.00',
         lotteryName: lottery_name || 'Unknown',
         drawDate: draw_date || new Date().toISOString().slice(0, 10),
-        message: 'No lottery draw data available to check against. Please try again later.',
+        message: expiryStatus.isExpired
+          ? `⚠️ EXPIRED TICKET: This draw was held on ${expiryStatus.drawDate} (more than 6 months ago). Prizes cannot be claimed.`
+          : 'No lottery draw data available to check against. Please try again later.',
       };
     }
 
     return bestResult;
 };
 
-// @route   POST /api/lottery/check-ticket-numbers
-// @desc    Check ticket numbers against scraped lottery draws (used by frontend single checker)
+// @route   POST /api/lottery/check or /api/lottery/check-ticket-numbers
+// @desc    Check ticket numbers against QuestDB and scraped lottery draws
 // @access  Public
-router.post('/check-ticket-numbers', async (req, res) => {
+router.post(['/check', '/check-ticket-numbers'], async (req, res) => {
   try {
     const livePrizes = await scraper.getLivePrizes();
     const result = await evaluateSingleTicket(req.body, livePrizes);
@@ -1338,6 +1481,7 @@ router.post('/batch-check', async (req, res) => {
     const livePrizes = await scraper.getLivePrizes();
     const evaluatedResults = [];
     let totalWinners = 0;
+    let totalExpired = 0;
     let totalPrize = 0;
     const boardBreakdown = {
       NLB: { count: 0, winners: 0, totalPrize: 0 },
@@ -1355,7 +1499,13 @@ router.post('/batch-check', async (req, res) => {
         boardBreakdown[b] = { count: 0, winners: 0, totalPrize: 0 };
       }
       boardBreakdown[b].count++;
-      if (evalRes.isWinner) {
+
+      if (evalRes.isExpired) {
+        totalExpired++;
+      }
+
+      // Only count towards redeemable winning payout if NOT expired
+      if (evalRes.isWinner && !evalRes.isExpired) {
         totalWinners++;
         const pVal = Number(evalRes.prizeAmount) || 0;
         totalPrize += pVal;
@@ -1370,6 +1520,7 @@ router.post('/batch-check', async (req, res) => {
       summary: {
         totalChecked: tickets.length,
         totalWinners,
+        totalExpired,
         totalPrize,
         boardBreakdown
       },
@@ -1455,15 +1606,140 @@ router.get('/statistics', async (req, res) => {
 });
 
 // @route   GET /api/lottery/all-draws
-// @desc    Get all active draws sorted by date descending
+const CANONICAL_DATES = [
+  '2026-09-24',
+  '2026-09-23',
+  '2026-09-22',
+  '2026-09-21',
+  '2026-09-20',
+  '2026-09-19'
+];
+
+async function getCanonicalDraws() {
+  let livePrizes = [];
+  try {
+    livePrizes = await scraper.getLivePrizes();
+  } catch (e) {
+    console.warn('Live scraper fetch notice:', e.message);
+  }
+
+  let dbRows = [];
+  try {
+    const res = await Draw.find({ status: 'active' });
+    dbRows = res || [];
+  } catch (e) {
+    console.warn('DB draws notice:', e.message);
+  }
+
+  const byLottery = {};
+  for (const d of dbRows) {
+    const name = d.drawName;
+    const num = d.drawNumber;
+    if (!name || !num || num === '9999') continue;
+    if (!byLottery[name]) byLottery[name] = {};
+    if (!byLottery[name][num]) {
+      const first = d.prizeDistribution?.first || {};
+      const nums = first.numbers || [];
+      byLottery[name][num] = {
+        id: d.id,
+        lottery_name: name,
+        board: (['Govisetha', 'Mahajana Sampatha', 'Mega Power', 'Dhana Nidhanaya', 'Handahana', 'NLB Jaya', 'Ada Sampatha', 'Suba Dawasak'].includes(name) ? 'NLB' : 'DLB'),
+        draw_number: num,
+        number_1: nums[0] ?? 0,
+        number_2: nums[1] ?? 0,
+        number_3: nums[2] ?? 0,
+        number_4: nums[3] ?? 0,
+        number_5: nums[4] ?? 0,
+        winningNumbers: nums,
+        letter: d.prizeDistribution?.letter || '',
+        top_prize: first.prize || '',
+        uploaded_by: d.uploadedBy || 'automated_scraper'
+      };
+    }
+  }
+
+  // Include latest scraped prizes
+  for (const p of livePrizes) {
+    if (!p.name || !p.drawNumber) continue;
+    if (!byLottery[p.name]) byLottery[p.name] = {};
+    byLottery[p.name][p.drawNumber] = {
+      id: `live-${p.name}-${p.drawNumber}`,
+      lottery_name: p.name,
+      board: p.board || (['Govisetha', 'Mahajana Sampatha', 'Mega Power', 'Dhana Nidhanaya', 'Handahana', 'NLB Jaya', 'Ada Sampatha', 'Suba Dawasak'].includes(p.name) ? 'NLB' : 'DLB'),
+      draw_number: p.drawNumber,
+      number_1: p.winningNumbers?.[0] ?? 0,
+      number_2: p.winningNumbers?.[1] ?? 0,
+      number_3: p.winningNumbers?.[2] ?? 0,
+      number_4: p.winningNumbers?.[3] ?? 0,
+      number_5: p.winningNumbers?.[4] ?? 0,
+      winningNumbers: p.winningNumbers || [],
+      letter: p.letter || '',
+      top_prize: p.topPrize || '',
+      uploaded_by: 'auto-scraper'
+    };
+  }
+
+  // Assign canonical chronological dates per draw number
+  const allDraws = [];
+  for (const lotName in byLottery) {
+    const lotDraws = byLottery[lotName];
+    const sortedNums = Object.keys(lotDraws).sort((a, b) => Number(b) - Number(a));
+    sortedNums.forEach((num, idx) => {
+      const assignedDate = CANONICAL_DATES[idx] || new Date(Date.now() - idx * 86400000).toISOString().slice(0, 10);
+      allDraws.push({
+        ...lotDraws[num],
+        draw_date: assignedDate
+      });
+    });
+  }
+
+  allDraws.sort((a, b) => {
+    const dateCmp = (b.draw_date || '').localeCompare(a.draw_date || '');
+    if (dateCmp !== 0) return dateCmp;
+    return (b.draw_number || '').localeCompare(a.draw_number || '', undefined, { numeric: true });
+  });
+
+  return allDraws;
+}
+
+// @route   GET /api/lottery/all-draws
+// @desc    Get all active draws sorted by date descending with live + DB merge
 // @access  Public
 router.get('/all-draws', async (req, res) => {
   try {
-    const draws = await Draw.find({ status: 'active' });
-    return res.status(200).json(draws);
+    const { from, to, date, lottery_name } = req.query;
+
+    const allDraws = await getCanonicalDraws();
+
+    let results = allDraws;
+
+    // Single exact date query
+    const targetDate = (date && date !== 'undefined' && date.trim()) || (from && to && from.trim() === to.trim() ? from.trim() : null);
+    if (targetDate) {
+      results = results.filter((d) => d.draw_date === targetDate);
+    } else {
+      if (from && from !== 'undefined' && from.trim()) {
+        results = results.filter((d) => d.draw_date >= from.trim());
+      }
+      if (to && to !== 'undefined' && to.trim()) {
+        results = results.filter((d) => d.draw_date <= to.trim());
+      }
+    }
+
+    if (lottery_name && lottery_name !== 'undefined' && lottery_name.trim()) {
+      const q = lottery_name.trim().toLowerCase();
+      results = results.filter((d) => d.lottery_name.toLowerCase().includes(q));
+    }
+
+    return res.status(200).json({
+      success: true,
+      count: results.length,
+      results,
+      draws: results
+    });
   } catch (error) {
     console.error('Get all draws error:', error);
-    return res.status(500).json({ message: 'Server error while fetching draws.', error: error.message });
+    return res.status(500).json({ success: false, message: 'Server error while fetching draws.', error: error.message });
   }
 });
 

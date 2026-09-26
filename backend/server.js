@@ -6,6 +6,7 @@ const questdb = require('./db/questdb');
 const authRoutes = require('./routes/auth');
 const lotteryRoutes = require('./routes/lottery');
 const agentRoutes = require('./routes/agent');
+const superAdminRoutes = require('./routes/superAdmin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 // Enable CORS
 const corsOptions = {
   origin: '*', // In production, replace with specific origins (e.g. ['http://localhost:3000'])
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
@@ -35,6 +36,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/lottery', lotteryRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/super', superAdminRoutes);
 
 // 404 Route handler
 app.use((req, res, next) => {
@@ -54,13 +56,19 @@ app.use((err, req, res, next) => {
 const startServer = async () => {
   await questdb.initDB();
 
-  // Auto-seed default admin and initial agency data (each independent)
+  // Auto-seed default admin and super admin
   try {
     const User = require('./models/User');
     const existingLk = await User.findByEmail('admin@lottoscan.lk');
     if (!existingLk) {
       await User.create({ email: 'admin@lottoscan.lk', password: 'admin', role: 'admin' });
       console.log('[Auth] Seeded default admin: admin@lottoscan.lk');
+    }
+
+    const existingSuper = await User.findByEmail('superadmin@lottoscan.lk');
+    if (!existingSuper) {
+      await User.create({ email: 'superadmin@lottoscan.lk', password: 'SuperAdmin123!', role: 'SUPER_ADMIN' });
+      console.log('[Auth] Seeded default super admin: superadmin@lottoscan.lk');
     }
   } catch (err) {
     console.warn('[Auth/Seed] User seed notice:', err.message);

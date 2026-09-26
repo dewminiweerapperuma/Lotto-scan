@@ -113,15 +113,44 @@ const createTables = async () => {
     );
   `;
 
+  const createAgentsTable = `
+    CREATE TABLE IF NOT EXISTS agents (
+      id VARCHAR,
+      user_id VARCHAR,
+      agency_name VARCHAR,
+      agent_code VARCHAR,
+      email VARCHAR,
+      phone VARCHAR,
+      board_affiliation VARCHAR,
+      location VARCHAR,
+      status VARCHAR,
+      created_at TIMESTAMP
+    );
+  `;
+
+  const createAuditLogsTable = `
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id VARCHAR,
+      actor_id VARCHAR,
+      actor_role VARCHAR,
+      action_type VARCHAR,
+      details VARCHAR,
+      ip_address VARCHAR,
+      timestamp TIMESTAMP
+    );
+  `;
+
   await pool.query(createUsersTable);
   await pool.query(createDrawsTable);
   await pool.query(createLivePrizesTable);
   await pool.query(createEmployeesTable);
   await pool.query(createWinningClaimsTable);
   await pool.query(createDailyOrdersTable);
+  await pool.query(createAgentsTable);
+  await pool.query(createAuditLogsTable);
 };
 
-const initDB = async (retries = 5, delayMs = 3000) => {
+const initDB = async (retries = 1, delayMs = 1000) => {
   for (let i = 1; i <= retries; i++) {
     try {
       console.log(`Connecting to QuestDB at ${host}:${port} (Attempt ${i}/${retries})...`);

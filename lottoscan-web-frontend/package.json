@@ -11,7 +11,9 @@
   "dependencies": {
     "@zxing/library": "^0.23.0",
     "axios": "^1.6.0",
+    "html5-qrcode": "^2.3.8",
     "jsqr": "^1.4.0",
+    "lucide-react": "^1.47.0",
     "next": "14.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

@@ -52,12 +52,12 @@ export default function LotteryGrid() {
             if (fetched) {
               return {
                 ...item,
-                topPrize: fetched.topPrize || item.topPrize,
-                drawNumber: fetched.drawNumber || item.drawNumber,
-                letter: fetched.letter || item.letter,
+                topPrize: (fetched.topPrize && fetched.topPrize !== "—") ? fetched.topPrize : item.topPrize,
+                drawNumber: (fetched.drawNumber && fetched.drawNumber.trim()) ? fetched.drawNumber : item.drawNumber,
+                letter: (fetched.letter && fetched.letter !== "?" && fetched.letter.trim()) ? fetched.letter : item.letter,
                 winningNumbers: (fetched.winningNumbers && fetched.winningNumbers.length > 0)
                   ? fetched.winningNumbers
-                  : item.winningNumbers,
+                  : (item.winningNumbers || []),
               };
             }
             return item;

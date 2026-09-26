@@ -42,7 +42,7 @@ interface ScanDetailApiResponse {
 }
 
 export default function ScanDetailReportPage() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isAgent } = useAuth();
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -57,8 +57,8 @@ export default function ScanDetailReportPage() {
   const [agentName, setAgentName] = useState("M G Thilakarathne");
 
   useEffect(() => {
-    if (!loading && !isAdmin) router.push("/admin");
-  }, [loading, isAdmin, router]);
+    if (!loading && !isAdmin && !isAgent) router.push("/agent/login");
+  }, [loading, isAdmin, isAgent, router]);
 
   const loadReport = useCallback(async (date: string) => {
     setDataLoading(true);
@@ -84,10 +84,10 @@ export default function ScanDetailReportPage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isAgent) {
       loadReport(selectedDate);
     }
-  }, [isAdmin, selectedDate, loadReport]);
+  }, [isAdmin, isAgent, selectedDate, loadReport]);
 
   const handlePrintActive = () => {
     window.print();
@@ -130,7 +130,7 @@ export default function ScanDetailReportPage() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin && !isAgent) return null;
 
   const nlbReport = reportResponse?.nlb;
   const dlbReport = reportResponse?.dlb;

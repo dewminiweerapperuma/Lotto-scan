@@ -360,12 +360,23 @@ export default function TicketChecker() {
             <p className="text-white/20 text-sm font-body">Supports all 16 Sri Lankan lotteries</p>
           </Card>
         ) : result.isWinner ? (
-          <Card glow="gold" padding="lg" className="space-y-6 animate-fade-in">
+          <Card glow={result.isExpired ? undefined : "gold"} padding="lg" className={`space-y-6 animate-fade-in ${result.isExpired ? "border-rose-500/50 bg-rose-950/20" : ""}`}>
             <div className="text-center space-y-3">
-              <div className="text-6xl">🏆</div>
-              <h3 className="text-3xl font-display font-extrabold text-gold">You Won!</h3>
-              <p className="text-5xl font-display font-black">{result.prizeAmountFormatted}</p>
-              <Badge variant="gold">{result.prizeCategory}</Badge>
+              <div className="text-6xl">{result.isExpired ? "⏳" : "🏆"}</div>
+              {result.isExpired ? (
+                <>
+                  <Badge variant="red">Expired Ticket (&gt; 6 Months)</Badge>
+                  <h3 className="text-3xl font-display font-extrabold text-rose-400">Claim Period Expired</h3>
+                  <p className="text-4xl font-display font-black text-white/30 line-through">{result.prizeAmountFormatted}</p>
+                  <p className="text-xs text-rose-300/80">Winning draw was over 6 months ago. Prize has lapsed.</p>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-3xl font-display font-extrabold text-gold">You Won!</h3>
+                  <p className="text-5xl font-display font-black">{result.prizeAmountFormatted}</p>
+                  <Badge variant="gold">{result.prizeCategory}</Badge>
+                </>
+              )}
             </div>
             <div className="space-y-4 border-t border-gold/20 pt-4">
               <div className="space-y-2">
@@ -387,11 +398,31 @@ export default function TicketChecker() {
                 <div><p className="text-white/30 text-xs">Matches</p><p className="text-gold font-bold">{result.matchedCount}/{result.winningNumbers.length}</p></div>
               </div>
             </div>
-            <div className="bg-gold/10 border border-gold/20 rounded-2xl p-4">
-              <p className="text-gold text-sm">🏦 Claim at any NLB/DLB branch within <strong>90 days</strong> with your original ticket and National ID.</p>
-            </div>
+            {result.isExpired ? (
+              <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 space-y-1">
+                <p className="text-rose-400 font-bold text-sm">⚠️ Claim Period Expired (6-Month Limit)</p>
+                <p className="text-rose-300/80 text-xs">
+                  NLB/DLB regulations require winning prizes to be collected within 6 months (180 days) of the draw date ({result.drawDate}). As of {result.expiryDate || "today"}, this ticket can no longer be redeemed.
+                </p>
+              </div>
+            ) : (
+              <div className="bg-gold/10 border border-gold/20 rounded-2xl p-4 space-y-1">
+                <p className="text-gold font-bold text-sm">
+                  🏦 Valid Claim Period: {result.daysRemaining !== undefined ? `${result.daysRemaining} days left` : "Within 6 Months"}
+                </p>
+                <p className="text-white/70 text-xs">
+                  Valid until {result.expiryDate || "6 months from draw"}. Claim at any NLB/DLB branch with your original ticket and National ID.
+                </p>
+              </div>
+            )}
             <div className="flex gap-3">
-              <Button onClick={() => navigator.share?.({ text: `🎉 I won ${result.prizeAmountFormatted}! #LottoScan` })} fullWidth>🎊 Share</Button>
+              {!result.isExpired ? (
+                <Button onClick={() => navigator.share?.({ text: `🎉 I won ${result.prizeAmountFormatted}! #LottoScan` })} fullWidth>🎊 Share</Button>
+              ) : (
+                <div className="w-full text-center py-2 px-3 rounded-xl bg-white/5 border border-white/10 text-white/40 text-xs font-semibold">
+                  Expired ticket cannot be claimed
+                </div>
+              )}
               <Button onClick={handleClear} variant="secondary">Again</Button>
             </div>
           </Card>

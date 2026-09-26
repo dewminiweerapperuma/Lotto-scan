@@ -6,6 +6,8 @@ export interface LotteryFormatConfig {
   isSingleDigit: boolean;
   hasLetter: boolean;
   hasZodiac: boolean;
+  hasTwoZodiacs?: boolean;
+  zodiacCount?: number;
   label: string;
   boxPlaceholders: string[];
 }
@@ -73,16 +75,18 @@ export function getLotteryConfig(lotteryName?: string): LotteryFormatConfig {
     };
   }
 
-  // 3. Suba Dawasak (3 Numbers + Zodiac)
-  if (name.includes("suba dawasak")) {
+  // 3. Suba Dawasak / Suba Dawasa (3 Numbers + 2 Zodiac Signs)
+  if (name.includes("suba dawas") || name.includes("subadawasa") || name.includes("suba dawasa")) {
     return {
       digitCount: 3,
       maxDigitsPerBox: 2,
       isPyramid: false,
       isSingleDigit: false,
-      hasLetter: false,
+      hasLetter: true,
       hasZodiac: true,
-      label: "Your Ticket Numbers (3 Numbers + Zodiac)",
+      hasTwoZodiacs: true,
+      zodiacCount: 2,
+      label: "Your Ticket Numbers (3 Numbers + 2 Zodiac Signs)",
       boxPlaceholders: ["00", "00", "00"],
     };
   }

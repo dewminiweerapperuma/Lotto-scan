@@ -1,7 +1,11 @@
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db/questdb');
+
+const CACHE_FILE = path.join(__dirname, '..', 'data', 'lottery_cache.json');
 
 // ─── NLB lottery slugs ───
 const NLB_LOTTERIES = [
@@ -29,6 +33,21 @@ const DLB_LOTTERIES = [
 
 let inMemoryPrizes = [];
 let lastScrapedAt = null;
+
+// Initialize inMemoryPrizes from file cache immediately
+try {
+  if (fs.existsSync(CACHE_FILE)) {
+    const raw = fs.readFileSync(CACHE_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      inMemoryPrizes = parsed;
+      lastScrapedAt = inMemoryPrizes[0]?.updatedAt || new Date().toISOString();
+      console.log(`[Scraper] Initialized ${inMemoryPrizes.length} lotteries from disk cache.`);
+    }
+  }
+} catch (e) {
+  console.warn('[Scraper] Could not load disk cache:', e.message);
+}
 
 const HTTP_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -75,14 +94,17 @@ const scrapeNLB = async () => {
   try {
     // 1. Scrape all main latest draw results from NLB homepage in one batch
     const homeHtml = await fetchNLBHtml('https://www.nlb.lk/');
+    if (!homeHtml) {
+      console.warn('[Scraper] NLB homepage HTML fetch failed (anti-bot / network). Preserving existing cache.');
+      return [];
+    }
+
     const prizeMap = new Map();
+    const $ = cheerio.load(homeHtml);
 
-    if (homeHtml) {
-      const $ = cheerio.load(homeHtml);
-
-      $('.latest table.tbl tr').each((_, tr) => {
-        const tdFirst = $(tr).find('td').first();
-        const rawName = tdFirst.find('strong').text().trim();
+    $('.latest table.tbl tr').each((_, tr) => {
+      const tdFirst = $(tr).find('td').first();
+      const rawName = tdFirst.find('strong').text().trim();
         if (!rawName) return;
 
         const drawMatch = tdFirst.text().match(/(\d+)/);
@@ -114,7 +136,6 @@ const scrapeNLB = async () => {
         const normalizedKey = rawName.toLowerCase().replace(/[^a-z0-9]/g, '');
         prizeMap.set(normalizedKey, { drawNumber, letter, winningNumbers });
       });
-    }
 
     // 2. Build complete objects for each configured NLB lottery
     for (const item of NLB_LOTTERIES) {
@@ -138,12 +159,38 @@ const scrapeNLB = async () => {
         if (pageHtml) {
           const $p = cheerio.load(pageHtml);
 
-          $p('h4').each((_, el) => {
-            if ($p(el).text().toLowerCase().includes('next super prize')) {
-              const nextP = $p(el).next('p');
-              if (nextP.length) topPrize = nextP.text().trim();
+          // 1. Check headings (e.g. Next Super Prize, Next Mega Super Prize, Next Power Super Prize, Next)
+          $p('h1, h2, h3, h4, h5, .prize, strong').each((_, el) => {
+            if (topPrize) return;
+            const hText = $p(el).text().trim().toLowerCase();
+            if (
+              hText.includes('super prize') ||
+              hText.includes('mega super') ||
+              hText.includes('power super') ||
+              hText.includes('jackpot') ||
+              hText.includes('next') ||
+              hText.includes('grand prize')
+            ) {
+              const nextEl = $p(el).next('p, div, span, strong');
+              if (nextEl.length) {
+                const val = nextEl.text().trim();
+                if (val && (val.includes('Rs') || val.toLowerCase().includes('gold') || /\d/.test(val))) {
+                  topPrize = val;
+                }
+              }
             }
           });
+
+          // 2. Fallback to any prominent Rs. pattern on page
+          if (!topPrize) {
+            $p('.lresult, .content, .results').find('p, div, span, td, strong').each((_, el) => {
+              if (topPrize) return;
+              const text = $p(el).clone().children().remove().end().text().trim();
+              if (/Rs\.?\s*[\d,]+(\.\d{2})?/.test(text) && text.length < 40) {
+                topPrize = text;
+              }
+            });
+          }
 
           // Fallback if drawNumber was missing
           if (!drawNumber) {
@@ -156,6 +203,16 @@ const scrapeNLB = async () => {
         }
       } catch (e) {}
 
+      // Fallback from known standard prize distribution if still empty
+      if (!topPrize) {
+        const NLB_DEFAULT_PRIZES = {
+          'ada-sampatha': 'Rs. 2,500,000',
+          'nlb-jaya': 'Rs. 500,000',
+          'suba-dawasak': 'Gold Coins',
+        };
+        topPrize = NLB_DEFAULT_PRIZES[item.slug] || '—';
+      }
+
       const itemResult = {
         name: item.name,
         board: 'NLB',
@@ -165,8 +222,10 @@ const scrapeNLB = async () => {
         winningNumbers,
       };
 
-      results.push(itemResult);
-      console.log(`  NLB ${item.name}: draw=${itemResult.drawNumber || '?'}, nums=${itemResult.winningNumbers.join(',') || '?'}, letter=${itemResult.letter || '?'}, prize=${itemResult.topPrize}`);
+      if ((winningNumbers && winningNumbers.length > 0) || drawNumber) {
+        results.push(itemResult);
+        console.log(`  NLB ${item.name}: draw=${itemResult.drawNumber || '?'}, nums=${itemResult.winningNumbers.join(',') || '?'}, letter=${itemResult.letter || '?'}, prize=${itemResult.topPrize}`);
+      }
     }
   } catch (err) {
     console.error('NLB scrape error:', err.message);
@@ -252,7 +311,6 @@ const scrapeDLB = async () => {
           Object.entries(prizeStructures).find(([k]) => k.includes(lotKey) || lotKey.includes(k))?.[1] || [];
 
         if (!container.length) {
-          results.push({ name: lottery.name, board: 'DLB', prizeStructure });
           continue;
         }
 
@@ -296,17 +354,18 @@ const scrapeDLB = async () => {
           winningNumbers.push(isNaN(n) ? val : n);
         });
 
-        results.push({
-          name: lottery.name,
-          board: 'DLB',
-          drawNumber,
-          letter,
-          winningNumbers,
-          topPrize: '',
-          prizeStructure,
-        });
-
-        console.log(`  DLB ${lottery.name}: draw=${drawNumber || '?'}, nums=${winningNumbers.join(',') || '?'}, letter=${letter || '?'}`);
+        if (winningNumbers.length > 0 || drawNumber) {
+          results.push({
+            name: lottery.name,
+            board: 'DLB',
+            drawNumber,
+            letter,
+            winningNumbers,
+            topPrize: '',
+            prizeStructure,
+          });
+          console.log(`  DLB ${lottery.name}: draw=${drawNumber || '?'}, nums=${winningNumbers.join(',') || '?'}, letter=${letter || '?'}`);
+        }
       } catch (e) {
         results.push({ name: lottery.name, board: 'DLB' });
       }
@@ -345,6 +404,18 @@ const scrapeDLB = async () => {
           }
         }
       }
+
+      // Fallback from prizeStructure if topPrize is still missing
+      for (const item of results) {
+        if (!item.topPrize || item.topPrize === '—') {
+          if (item.prizeStructure && item.prizeStructure.length > 0) {
+            const sorted = [...item.prizeStructure].sort((a, b) => (b.prizeAmount || 0) - (a.prizeAmount || 0));
+            if (sorted[0] && sorted[0].prize) {
+              item.topPrize = sorted[0].prize;
+            }
+          }
+        }
+      }
     } catch (e) {
       console.warn('  DLB ticker scrape notice:', e.message);
     }
@@ -378,20 +449,56 @@ const scrapeLivePrizes = async () => {
     console.warn('[Scraper] DLB scrape error:', e.message);
   }
 
-  const allResults = [...nlbResults, ...dlbResults].map(r => ({
-    ...r,
-    updatedAt: new Date().toISOString(),
-  }));
+  // Smart Non-Destructive Merge:
+  // If an upstream board was down or an item returned empty, PRESERVE previously cached valid data!
+  const resultMap = new Map();
+  inMemoryPrizes.forEach(p => resultMap.set(p.name, p));
 
-  if (allResults.length > 0) {
-    inMemoryPrizes = allResults;
+  const freshList = [...nlbResults, ...dlbResults];
+  freshList.forEach(fresh => {
+    if (!fresh || !fresh.name) return;
+    const existing = resultMap.get(fresh.name);
+    const hasFreshNums = fresh.winningNumbers && fresh.winningNumbers.length > 0;
+    const hasFreshDraw = Boolean(fresh.drawNumber);
+
+    if (!existing) {
+      if (hasFreshNums || hasFreshDraw) {
+        resultMap.set(fresh.name, { ...fresh, updatedAt: new Date().toISOString() });
+      }
+    } else {
+      resultMap.set(fresh.name, {
+        ...existing,
+        drawNumber: hasFreshDraw ? fresh.drawNumber : existing.drawNumber,
+        letter: (fresh.letter && fresh.letter !== '?') ? fresh.letter : (existing.letter || fresh.letter || ''),
+        winningNumbers: hasFreshNums ? fresh.winningNumbers : existing.winningNumbers,
+        topPrize: (fresh.topPrize && fresh.topPrize !== '—') ? fresh.topPrize : existing.topPrize,
+        prizeStructure: (fresh.prizeStructure && fresh.prizeStructure.length > 0) ? fresh.prizeStructure : existing.prizeStructure,
+        updatedAt: hasFreshNums ? new Date().toISOString() : existing.updatedAt,
+      });
+    }
+  });
+
+  const mergedResults = Array.from(resultMap.values());
+
+  if (mergedResults.length > 0) {
+    inMemoryPrizes = mergedResults;
     lastScrapedAt = new Date().toISOString();
+
+    // Persist to disk cache
+    try {
+      const dataDir = path.dirname(CACHE_FILE);
+      if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+      fs.writeFileSync(CACHE_FILE, JSON.stringify(mergedResults, null, 2), 'utf8');
+      console.log(`[Scraper] Saved ${mergedResults.length} lotteries to disk cache (${CACHE_FILE})`);
+    } catch (fsErr) {
+      console.warn('[Scraper] Could not write disk cache:', fsErr.message);
+    }
   }
 
   // Persist to QuestDB (both live_prizes and draws tables)
   try {
     const now = new Date().toISOString();
-    for (const item of allResults) {
+    for (const item of mergedResults) {
       // Only insert into live_prizes if we got valid winning numbers or valid draw data
       if (item.winningNumbers && item.winningNumbers.length > 0) {
         await db.query(
@@ -423,8 +530,8 @@ const scrapeLivePrizes = async () => {
     success: true,
     nlbScraped: nlbResults.length > 0,
     dlbScraped: dlbResults.length > 0,
-    count: allResults.length,
-    prizes: allResults,
+    count: mergedResults.length,
+    prizes: mergedResults,
     lastUpdated: lastScrapedAt,
   };
 };
@@ -460,6 +567,15 @@ const getLivePrizes = async () => {
     }
   } catch (e) {
     // fallback to memory
+  }
+
+  // Safety net: reload disk cache if memory is somehow empty
+  if (!inMemoryPrizes || inMemoryPrizes.length === 0) {
+    try {
+      if (fs.existsSync(CACHE_FILE)) {
+        inMemoryPrizes = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
+      }
+    } catch (e) {}
   }
 
   return inMemoryPrizes;

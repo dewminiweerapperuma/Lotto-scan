@@ -21,7 +21,7 @@ export default function DashboardPage() {
   const [fetchErr, setFetchErr] = useState("");
 
   useEffect(() => {
-    if (!loading && !isAdmin) router.push("/admin");
+    if (!loading && !isAdmin) router.push("/agent/login");
   }, [loading, isAdmin, router]);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     logout();
-    router.push("/admin");
+    router.push("/agent/login");
   };
 
   const statusStyle: Record<string, string> = {

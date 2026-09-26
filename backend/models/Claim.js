@@ -77,6 +77,36 @@ class Claim {
     };
   }
 
+  static async findBySerial(ticketSerial) {
+    if (!ticketSerial) return null;
+    try {
+      const res = await db.query(
+        'SELECT id, agent_id, employee_id, employee_name, lottery_name, board, draw_number, draw_date, ticket_serial, matched_tier, prize_amount, payout_status, claimed_at FROM winning_claims WHERE ticket_serial = $1 LIMIT 1',
+        [String(ticketSerial).trim()]
+      );
+      if (!res || !res.rows || res.rows.length === 0) return null;
+      const r = res.rows[0];
+      return {
+        id: r.id,
+        agentId: r.agent_id,
+        employeeId: r.employee_id,
+        employeeName: r.employee_name,
+        lotteryName: r.lottery_name,
+        board: r.board,
+        drawNumber: r.draw_number,
+        drawDate: r.draw_date,
+        ticketSerial: r.ticket_serial,
+        matchedTier: r.matched_tier,
+        prizeAmount: parseFloat(r.prize_amount) || 0,
+        payoutStatus: r.payout_status,
+        claimedAt: r.claimed_at,
+      };
+    } catch (err) {
+      console.warn('findBySerial query notice:', err.message);
+      return null;
+    }
+  }
+
   static async getClaimsByDate(dateStr, agentId) {
     // dateStr format: YYYY-MM-DD
     const res = await db.query(

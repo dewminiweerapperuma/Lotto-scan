@@ -11,7 +11,7 @@ import Button from "@/components/ui/Button";
 import { LOTTERIES } from "@/lib/constants";
 
 export default function DailyReportsPage() {
-  const { user, loading, isAdmin, logout } = useAuth();
+  const { user, loading, isAdmin, isAgent, logout } = useAuth();
   const router = useRouter();
 
   // Selected date (defaults to today YYYY-MM-DD)
@@ -56,8 +56,8 @@ export default function DailyReportsPage() {
   const [empMsg, setEmpMsg] = useState("");
 
   useEffect(() => {
-    if (!loading && !isAdmin) router.push("/admin");
-  }, [loading, isAdmin, router]);
+    if (!loading && !isAdmin && !isAgent) router.push("/agent/login");
+  }, [loading, isAdmin, isAgent, router]);
 
   // Fetch Report Data for Selected Date
   const loadReport = useCallback(async (date: string) => {
@@ -105,10 +105,10 @@ export default function DailyReportsPage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
+    if (isAdmin || isAgent) {
       loadReport(selectedDate);
     }
-  }, [isAdmin, selectedDate, loadReport]);
+  }, [isAdmin, isAgent, selectedDate, loadReport]);
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
@@ -177,7 +177,7 @@ export default function DailyReportsPage() {
     );
   }
 
-  if (!isAdmin) return null;
+  if (!isAdmin && !isAgent) return null;
 
   const metrics = reportData?.metrics || {
     totalTickets: 0,
@@ -329,64 +329,7 @@ export default function DailyReportsPage() {
           </div>
         </Card>
 
-        {/* ─── Key Metrics KPI Cards ─── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Winning Tickets
-              </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                {metrics.totalTickets} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-xl shrink-0">
-              🎫
-            </div>
-          </Card>
 
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Prize Paid Out
-              </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
-                Rs. {Number(metrics.totalPayout || 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
-              💰
-            </div>
-          </Card>
-
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Agency Commission
-              </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-gold-dark mt-1">
-                Rs. {ordersMetrics.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
-              📈
-            </div>
-          </Card>
-
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
-            <div>
-              <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Active Staff Members
-              </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                {ordersMetrics.activeStaff || employees.length} <span className="text-xs font-body font-semibold text-text-muted">Sellers</span>
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
-              🏪
-            </div>
-          </Card>
-        </div>
 
         {/* ─── Navigation Tabs (Screen Only) ─── */}
         <div className="flex border-b border-border-default mb-6 gap-2 print:hidden">

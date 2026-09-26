@@ -1,36 +1,37 @@
 import Link from "next/link";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import { LOTTERIES, LOTTERY_EMOJIS } from "@/lib/constants";
+import { LOTTERIES } from "@/lib/constants";
 import TicketChecker from "@/components/sections/TicketChecker";
 import LotteryGrid from "@/components/sections/LotteryGrid";
+import LiveDrawHeroCard from "@/components/home/LiveDrawHeroCard";
 
 export default function HomePage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative bg-brand-bg pt-20 md:pt-28 pb-16 overflow-hidden">
+      <section className="relative bg-brand-bg pt-28 md:pt-36 pb-16 overflow-hidden">
         {/* Background glow effects */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-gold/5 blur-[150px] pointer-events-none" />
         
-        <div className="container relative z-10 text-center max-w-[900px] py-12 md:py-20">
+        <div className="container relative z-10 text-center max-w-[960px] py-6 md:py-12">
           {/* Pill Badge */}
-          <div className="inline-flex items-center gap-2 bg-gold-light border border-gold-border rounded-full px-5 py-2 mb-8 shadow-sm">
+          <div className="inline-flex items-center gap-2 bg-gold-light border border-gold-border rounded-full px-5 py-2 mb-6 shadow-sm">
             <span className="text-sm">🎫</span>
             <span className="text-gold-dark text-xs md:text-sm font-display font-bold uppercase tracking-wider">
-              Sri Lanka's Smartest Lottery Checker
+              Sri Lanka's Official Real-Time Lottery Checker
             </span>
           </div>
 
           {/* Heading */}
-          <h1 className="text-5xl md:text-7xl font-display font-extrabold leading-[1.08] tracking-tight text-text-primary mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-extrabold leading-[1.1] tracking-tight text-text-primary mb-6">
             Check Your Lottery<br />
             Ticket <span className="text-gold-gradient">Instantly</span>
           </h1>
 
           {/* Subheading */}
-          <p className="text-text-secondary font-body text-lg md:text-xl max-w-[560px] mx-auto mb-10 leading-relaxed">
-            Enter your numbers or scan the QR code on your ticket. Get results in seconds for all 16 NLB and DLB lotteries.
+          <p className="text-text-secondary font-body text-base md:text-xl max-w-[620px] mx-auto mb-8 leading-relaxed">
+            Enter your numbers or scan the official QR code on your ticket. Get instant, verified results directly from NLB and DLB live draws.
           </p>
 
           {/* Two CTA Buttons */}
@@ -43,12 +44,12 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Stats Row */}
-          <div className="flex items-center justify-center gap-4 md:gap-12 mt-16 border-t border-border-default pt-10 max-w-xl mx-auto">
+          {/* Stats Row - Dynamically derived from LOTTERIES and system capabilities */}
+          <div className="flex items-center justify-center gap-4 md:gap-12 mt-12 border-t border-border-default pt-8 max-w-xl mx-auto">
             {[
-              { value: "16", label: "Lotteries Supported" },
-              { value: "11:15 PM", label: "Updated Daily" },
-              { value: "100%", label: "Free to Use" },
+              { value: `${LOTTERIES.length}`, label: "Lotteries Supported" },
+              { value: "NLB & DLB", label: "Official Boards" },
+              { value: "100%", label: "Live Verified Data" },
             ].map((stat, i) => (
               <div key={i} className="flex items-center gap-4 md:gap-12">
                 {i > 0 && <div className="w-px h-8 bg-border-default shrink-0" />}
@@ -60,69 +61,9 @@ export default function HomePage() {
             ))}
           </div>
 
-          {/* Hero Visual Mockup */}
-          <div className="mt-20 relative max-w-[480px] mx-auto px-4">
-            <div className="bg-white border border-border-default rounded-[24px] shadow-[0_8px_32px_rgba(0,0,0,0.06)] border-l-4 border-l-gold text-left overflow-hidden">
-              <div className="p-6 pb-4">
-                {/* Visual Card Header */}
-                <div className="flex items-center justify-between mb-5">
-                  <div className="bg-gold-light border border-gold-border rounded-full px-3 py-1 text-gold-dark text-xs font-display font-bold uppercase tracking-wider">
-                    ⚡ Mega Power
-                  </div>
-                  <div className="text-text-secondary font-body text-xs font-semibold">
-                    Draw #1234 · Today
-                  </div>
-                </div>
-
-                {/* Number Balls Row */}
-                <div className="flex gap-2.5 justify-between mb-5">
-                  {[12, 34, 56, 23, 78].map((n, i) => {
-                    const isMatched = [0, 2, 4].includes(i);
-                    return (
-                      <div
-                        key={i}
-                        className={`w-[52px] h-[52px] rounded-full flex items-center justify-center font-display font-extrabold text-lg select-none transition-all duration-300
-                          ${isMatched 
-                            ? "bg-gold text-white shadow-[0_4px_12px_rgba(232,168,0,0.4)]" 
-                            : "bg-brand-section text-text-muted"
-                          }`}
-                      >
-                        {n}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="w-full h-px bg-border-default my-4" />
-
-                {/* Result Row */}
-                <div className="flex items-center justify-between pt-1 pb-3">
-                  <span className="text-text-secondary font-body text-sm font-semibold">3 Numbers Matched</span>
-                  <span className="text-gold font-display font-extrabold text-2xl">Rs. 5,000</span>
-                </div>
-              </div>
-
-              {/* Green Win Banner */}
-              <div className="bg-win-light text-win border-t border-green-150 px-6 py-3.5 text-sm font-body font-semibold flex items-center gap-2">
-                <span>✅</span> You Won! Claim within 90 days.
-              </div>
-            </div>
-
-            {/* Floating Mini Cards */}
-            <div className="absolute top-1/2 -left-12 -translate-y-1/2 hidden md:block">
-              <Card padding="sm" className="shadow-[0_4px_20px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 pointer-events-none">
-                <span className="text-text-secondary font-body text-xs font-bold flex items-center gap-1.5">
-                  🎯 3 Matched
-                </span>
-              </Card>
-            </div>
-            <div className="absolute top-12 -right-12 hidden md:block">
-              <Card padding="sm" className="shadow-[0_4px_20px_rgba(0,0,0,0.06)] border border-gold-border hover:-translate-y-0.5 pointer-events-none">
-                <span className="text-gold-dark font-body text-xs font-bold flex items-center gap-1.5">
-                  🏆 3rd Prize
-                </span>
-              </Card>
-            </div>
+          {/* Dynamic Live Draw Showcase Card */}
+          <div className="mt-14 max-w-3xl mx-auto text-left">
+            <LiveDrawHeroCard />
           </div>
         </div>
       </section>

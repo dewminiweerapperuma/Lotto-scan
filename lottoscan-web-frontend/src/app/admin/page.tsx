@@ -10,11 +10,15 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const { login, isAdmin } = useAuth();
+  const { user, login, isAdmin, isSuperAdmin, isAgent } = useAuth();
   const router = useRouter();
 
-  if (isAdmin) {
-    router.push("/admin/dashboard");
+  if (isAdmin || isAgent) {
+    if (isSuperAdmin) {
+      router.push("/super/dashboard");
+    } else {
+      router.push("/agent/dashboard");
+    }
     return null;
   }
 
@@ -26,14 +30,17 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError("");
     try {
-      const user = await login(email, password);
-      if (user.role !== "admin") {
-        setError("You do not have admin access");
+      const loggedUser = await login(email, password);
+      if (loggedUser.role === "SUPER_ADMIN") {
+        router.push("/super/dashboard");
+      } else if (loggedUser.role === "AREA_AGENT" || loggedUser.role === "agent" || loggedUser.role === "admin") {
+        router.push("/agent/dashboard");
+      } else {
+        setError("You do not have administrative agent access");
         return;
       }
-      router.push("/admin/dashboard");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Login failed. Check your credentials.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Login failed. Check your credentials.");
     } finally {
       setLoading(false);
     }

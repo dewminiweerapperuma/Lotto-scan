@@ -295,6 +295,36 @@ router.post('/claims', async (req, res) => {
       return res.status(400).json({ message: 'Lottery name and prize amount are required.' });
     }
 
+    // Duplicate Prevention: Check if this ticket serial was already claimed
+    if (ticketSerial) {
+      const existing = await Claim.findBySerial(ticketSerial);
+      if (existing) {
+        return res.status(409).json({
+          message: `Ticket serial ${ticketSerial} has already been claimed on ${new Date(existing.claimedAt || existing.claimed_at).toLocaleDateString()}.`,
+          alreadyClaimed: true,
+          existingClaim: existing
+        });
+      }
+    }
+
+    // Expiration Prevention: Check if draw date is older than 6 months (approx 180 days)
+    if (drawDate) {
+      const cleanDateStr = String(drawDate).replace(/\//g, '-').trim().slice(0, 10);
+      const drawTime = new Date(cleanDateStr + 'T00:00:00').getTime();
+      if (!isNaN(drawTime)) {
+        const expiryDate = new Date(drawTime);
+        expiryDate.setMonth(expiryDate.getMonth() + 6);
+        if (new Date() > expiryDate) {
+          return res.status(400).json({
+            message: `Payout Blocked: Ticket is EXPIRED. Draw was held on ${cleanDateStr} (deadline was ${expiryDate.toISOString().slice(0, 10)}). Official Sri Lanka NLB & DLB regulations state lottery winning prizes must be claimed within 6 months of draw date.`,
+            isExpired: true,
+            drawDate: cleanDateStr,
+            expiryDate: expiryDate.toISOString().slice(0, 10)
+          });
+        }
+      }
+    }
+
     const newClaim = await Claim.createClaim({
       agentId,
       employeeId,
