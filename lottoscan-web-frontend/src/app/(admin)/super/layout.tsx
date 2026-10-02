@@ -18,6 +18,8 @@ import {
   X,
   ExternalLink
 } from "lucide-react";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function SuperAdminLayout({
   children,
@@ -27,6 +29,7 @@ export default function SuperAdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSuperAdmin, logout, loading } = useAuth();
+  const { t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -50,34 +53,34 @@ export default function SuperAdminLayout({
 
   const navItems = [
     {
-      label: "National Dashboard",
+      label: t("super_nav_dashboard"),
       href: "/super/dashboard",
       icon: LayoutDashboard,
       badge: "LIVE",
     },
     {
-      label: "Area Agencies",
+      label: t("super_nav_agents"),
       href: "/super/agents",
       icon: Building2,
     },
     {
-      label: "Draws & Overrides",
+      label: t("super_nav_draws"),
       href: "/super/draws",
       icon: Trophy,
     },
     {
-      label: "Crawler & Scrapers",
+      label: t("super_nav_scrapers"),
       href: "/super/scrapers",
       icon: RefreshCw,
     },
     {
-      label: "Duplicate Claims",
+      label: t("super_nav_claims"),
       href: "/super/claims",
       icon: ShieldAlert,
       badge: "SECURITY",
     },
     {
-      label: "Audit Logs",
+      label: t("super_nav_logs"),
       href: "/super/logs",
       icon: History,
     },
@@ -97,12 +100,15 @@ export default function SuperAdminLayout({
             </h1>
           </div>
         </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-lg bg-slate-800/60 text-slate-300 hover:text-white border border-slate-700/50"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <div className="flex items-center gap-2">
+          <LanguageToggle variant="dark" />
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 rounded-lg bg-slate-800/60 text-slate-300 hover:text-white border border-slate-700/50"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Sidebar Navigation */}
@@ -113,7 +119,7 @@ export default function SuperAdminLayout({
       >
         <div className="p-6 space-y-6 flex-1 overflow-y-auto">
           {/* Logo & System Badge */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-600 flex items-center justify-center text-slate-950 font-black shadow-lg shadow-amber-500/20">
                 <ShieldCheck className="w-6 h-6" />
@@ -123,9 +129,15 @@ export default function SuperAdminLayout({
                   LottoScan
                 </h2>
                 <p className="text-[11px] font-mono text-amber-400/90 tracking-wider uppercase mt-1">
-                  Governance Hub
+                  {t("super_governance_hub")}
                 </p>
               </div>
+            </div>
+            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800">
+              <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400">
+                Language / භාෂාව
+              </span>
+              <LanguageToggle variant="dark" />
             </div>
             <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-300/80 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -139,7 +151,7 @@ export default function SuperAdminLayout({
           {/* Navigation Links */}
           <nav className="space-y-1">
             <p className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400 px-3 pb-2">
-              Subsystems
+              {t("super_subsystems")}
             </p>
             {navItems.map((item) => {
               const Icon = item.icon;

@@ -19,6 +19,13 @@ class SoundEffectsService {
       if (storedVoice !== null) {
         this.voiceEnabled = storedVoice === "true";
       }
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.onvoiceschanged = () => {
+          try {
+            window.speechSynthesis.getVoices();
+          } catch {}
+        };
+      }
     }
   }
 
@@ -59,6 +66,52 @@ class SoundEffectsService {
     if (typeof window !== "undefined") {
       localStorage.setItem("lottoscan_voice_enabled", String(enabled));
     }
+  }
+
+  /**
+   * ALREADY SCANNED SOUND: When ticket has already been scanned in the bulk scanning session.
+   * Plays a distinct dual-tone rejection buzzer and speaks "Already scanned".
+   */
+  public playAlreadyScannedSound() {
+    if (!this.soundEnabled) return;
+    const ctx = this.getAudioContext();
+    if (ctx) {
+      try {
+        const now = ctx.currentTime;
+        // Pulse 1: 260Hz -> 150Hz
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sawtooth";
+        osc1.frequency.setValueAtTime(260, now);
+        osc1.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        // Pulse 2: 220Hz -> 130Hz
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "sawtooth";
+        osc2.frequency.setValueAtTime(220, now + 0.16);
+        osc2.frequency.exponentialRampToValueAtTime(130, now + 0.35);
+
+        gain2.gain.setValueAtTime(0.32, now + 0.16);
+        gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.16);
+        osc2.stop(now + 0.35);
+      } catch {}
+    }
+
+    // Voice announcement explicitly saying: "Already scanned"
+    this.speak("Already scanned");
   }
 
   /**

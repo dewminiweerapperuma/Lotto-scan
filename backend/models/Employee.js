@@ -51,6 +51,46 @@ class Employee {
       }));
   }
 
+  static async findById(id) {
+    if (!id) return null;
+    try {
+      const res = await db.query(
+        'SELECT id, agent_id, name, email, phone, counter_name, commission_rate, status, created_at FROM employees WHERE id = $1 LIMIT 1',
+        [id]
+      );
+      if (!res.rows || res.rows.length === 0) return null;
+      const r = res.rows[0];
+      return {
+        id: r.id,
+        agentId: r.agent_id,
+        name: r.name,
+        email: r.email,
+        phone: r.phone,
+        counterName: r.counter_name,
+        commissionRate: parseFloat(r.commission_rate) || 2.5,
+        status: r.status,
+        createdAt: r.created_at
+      };
+    } catch (err) {
+      console.warn('findById notice:', err.message);
+      return null;
+    }
+  }
+
+  static async findOrCreateByName(name, counterName = 'Main Counter', agentId = 'default-agent') {
+    if (!name || !name.trim()) return null;
+    const cleanName = name.trim();
+    const all = await this.listByAgent(agentId);
+    const existing = all.find(e => e.name.toLowerCase() === cleanName.toLowerCase());
+    if (existing) return existing;
+    return await this.create({
+      agentId,
+      name: cleanName,
+      counterName: counterName || 'Main Counter',
+      commissionRate: 2.5
+    });
+  }
+
   static async delete(id) {
     if (!id) return false;
     await db.query(`UPDATE employees SET status = 'deleted' WHERE id = $1`, [id]);

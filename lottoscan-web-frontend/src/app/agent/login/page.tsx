@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/lib/hooks";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function AgentLoginPage() {
   const [identifier, setIdentifier] = useState("");
@@ -13,6 +15,7 @@ export default function AgentLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login, isAgent, isAdmin, isSuperAdmin } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   useEffect(() => {
@@ -72,6 +75,10 @@ export default function AgentLoginPage() {
         <div className="h-2 bg-gradient-to-r from-amber-500 via-gold to-blue-600 w-full" />
 
         <div className="p-8 md:p-10 space-y-7">
+          <div className="flex justify-end">
+            <LanguageToggle variant="compact" />
+          </div>
+
           {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-16 h-16 rounded-2xl bg-gold-light border-2 border-gold flex items-center justify-center text-3xl mx-auto shadow-sm">
@@ -83,10 +90,10 @@ export default function AgentLoginPage() {
               </span>
             </div>
             <h1 className="text-2xl font-display font-extrabold text-text-primary">
-              Lottery Agent Sign-In
+              {t("login_agent_title")}
             </h1>
             <p className="text-text-secondary font-body text-xs">
-              Access your counter sales, live ticket scans, staff indents, and payout reconciliation
+              {t("login_agent_subtitle")}
             </p>
           </div>
 
@@ -135,7 +142,7 @@ export default function AgentLoginPage() {
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label className="text-text-secondary text-xs font-body uppercase font-bold tracking-wider mb-1.5 block">
-                Email Address or Dealer Code
+                {t("login_dealer_code_label")}
               </label>
               <div className="relative">
                 <input
@@ -152,7 +159,7 @@ export default function AgentLoginPage() {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="text-text-secondary text-xs font-body uppercase font-bold tracking-wider block">
-                  Password
+                  {t("login_password_label")}
                 </label>
               </div>
               <input
@@ -172,7 +179,7 @@ export default function AgentLoginPage() {
               size="md"
               className="bg-gold text-white font-bold text-xs py-3 shadow-md hover:bg-gold-dark mt-2"
             >
-              🔐 Sign In to Agency Portal →
+              🔐 {t("login_signin_btn")} →
             </Button>
           </form>
 

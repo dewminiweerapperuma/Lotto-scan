@@ -9,9 +9,12 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { LOTTERIES } from "@/lib/constants";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function DailyReportsPage() {
   const { user, loading, isAdmin, isAgent, logout } = useAuth();
+  const { t, tLottery } = useLanguage();
   const router = useRouter();
 
   // Selected date (defaults to today YYYY-MM-DD)
@@ -211,13 +214,13 @@ export default function DailyReportsPage() {
           <div>
             <div className="flex items-center gap-3">
               <Link
-                href="/admin/dashboard"
+                href="/agent/dashboard"
                 className="text-text-secondary hover:text-text-primary transition-colors font-body text-xs font-bold border border-border-default px-2.5 py-1 rounded-lg bg-white shadow-sm"
               >
-                ← Dashboard
+                {t("orders_back_dashboard")}
               </Link>
               <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary">
-                Daily Winning Summary Report
+                {t("reports_page_title")}
               </h1>
             </div>
             <p className="text-text-secondary font-body text-xs font-semibold mt-1">
@@ -227,13 +230,14 @@ export default function DailyReportsPage() {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <LanguageToggle variant="compact" />
             <Link href="/scan">
               <Button
                 variant="primary"
                 size="sm"
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm px-3.5"
               >
-                ⚡ Bulk Scanner
+                ⚡ {t("agent_launch_scanner")}
               </Button>
             </Link>
             <Link href="/admin/orders">
@@ -242,7 +246,7 @@ export default function DailyReportsPage() {
                 size="sm"
                 className="border-amber-300 bg-amber-50 text-amber-900 font-bold text-xs shadow-sm hover:bg-amber-100"
               >
-                📦 Daily Order Sheet
+                📦 {t("reports_orders_btn")}
               </Button>
             </Link>
             <Link href="/admin/reports/scan-detail">
@@ -251,7 +255,7 @@ export default function DailyReportsPage() {
                 size="sm"
                 className="border-purple-300 bg-purple-50 text-purple-900 font-bold text-xs shadow-sm hover:bg-purple-100"
               >
-                📋 Agent&apos;s Scan Detail
+                📋 {t("reports_scan_detail_btn")}
               </Button>
             </Link>
             <Button
@@ -260,7 +264,7 @@ export default function DailyReportsPage() {
               onClick={() => setIsEmpModalOpen(true)}
               className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-gold"
             >
-              👥 Add Counter Staff
+              👥 {t("reports_add_staff")}
             </Button>
             <Button
               variant="outline"
@@ -268,7 +272,7 @@ export default function DailyReportsPage() {
               onClick={() => setIsClaimModalOpen(true)}
               className="border-gold-border bg-gold-light text-gold-dark font-bold text-xs shadow-sm hover:bg-gold hover:text-white"
             >
-              ➕ Record Winning Payout
+              ➕ {t("reports_record_claim")}
             </Button>
             <Button
               variant="primary"
@@ -276,7 +280,7 @@ export default function DailyReportsPage() {
               onClick={handlePrint}
               className="px-4 text-xs shadow-sm font-bold"
             >
-              🖨️ Export / Print Report
+              🖨️ {t("reports_export_btn")}
             </Button>
           </div>
         </div>
@@ -286,7 +290,7 @@ export default function DailyReportsPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">
-                Select Date:
+                {t("orders_select_date")}
               </span>
               <input
                 type="date"
@@ -306,30 +310,28 @@ export default function DailyReportsPage() {
                     : "bg-brand-section text-text-secondary hover:text-text-primary border border-border-default"
                 }`}
               >
-                Today
+                {t("orders_today")}
               </button>
               <button
                 type="button"
                 onClick={() => setQuickDate(1)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-section text-text-secondary hover:text-text-primary border border-border-default transition-all"
               >
-                Yesterday
+                {t("orders_yesterday")}
               </button>
               <button
                 type="button"
                 onClick={() => setQuickDate(2)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-section text-text-secondary hover:text-text-primary border border-border-default transition-all"
               >
-                2 Days Ago
+                {t("orders_2days_ago")}
               </button>
               <span className="text-text-muted text-xs font-mono pl-2">
-                Viewing: <strong className="text-text-primary">{selectedDate}</strong>
+                {t("orders_viewing_for")} <strong className="text-text-primary">{selectedDate}</strong>
               </span>
             </div>
           </div>
         </Card>
-
-
 
         {/* ─── Navigation Tabs (Screen Only) ─── */}
         <div className="flex border-b border-border-default mb-6 gap-2 print:hidden">
@@ -341,7 +343,7 @@ export default function DailyReportsPage() {
                 : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
-            🏛️ Board-Wise Summary (NLB & DLB)
+            {t("reports_tab_boards")}
           </button>
           <button
             onClick={() => setActiveTab("counters")}
@@ -351,7 +353,7 @@ export default function DailyReportsPage() {
                 : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
-            👥 Counter / Employee Summary ({counterStaff.length})
+            {t("reports_tab_counters")} ({counterStaff.length})
           </button>
           <button
             onClick={() => setActiveTab("claims")}
@@ -361,7 +363,7 @@ export default function DailyReportsPage() {
                 : "border-transparent text-text-secondary hover:text-text-primary"
             }`}
           >
-            📜 Individual Claims Audit ({recentClaims.length})
+            {t("reports_tab_claims")} ({recentClaims.length})
           </button>
         </div>
 

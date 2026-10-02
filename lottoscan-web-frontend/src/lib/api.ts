@@ -88,6 +88,15 @@ export const agent = {
   saveDailyOrders: (data: any) => apiClient.post("/agent/orders", data),
   getScanDetailReport: (date?: string, board?: string, agentId?: string) =>
     apiClient.get(`/agent/reports/scan-detail?date=${date || ""}${board ? `&board=${board}` : ""}&agentId=${agentId || "default-agent"}`),
+  getSessions: (params?: { employeeId?: string; date?: string; agentId?: string; status?: string }) => {
+    const qs = new URLSearchParams(params as any).toString();
+    return apiClient.get(`/agent/sessions${qs ? `?${qs}` : ""}`);
+  },
+  getSession: (id: string) => apiClient.get(`/agent/sessions/${id}`),
+  createSession: (data: any) => apiClient.post("/agent/sessions", data),
+  updateSession: (id: string, data: any) => apiClient.put(`/agent/sessions/${id}`, data),
+  getEmployeeProfile: (employeeId: string, agentId?: string) =>
+    apiClient.get(`/agent/employees/${employeeId}/profile?agentId=${agentId || "default-agent"}`),
 };
 
 export const superAdmin = {

@@ -140,6 +140,30 @@ const createTables = async () => {
     );
   `;
 
+  const createScanSessionsTable = `
+    CREATE TABLE IF NOT EXISTS scan_sessions (
+      id VARCHAR,
+      session_number VARCHAR,
+      agent_id VARCHAR,
+      employee_id VARCHAR,
+      employee_name VARCHAR,
+      counter_name VARCHAR,
+      started_at TIMESTAMP,
+      ended_at TIMESTAMP,
+      status VARCHAR,
+      total_tickets INT,
+      winning_tickets INT,
+      non_winning_tickets INT,
+      total_winning_amount DOUBLE,
+      return_shortage_amount DOUBLE,
+      net_total_amount DOUBLE,
+      prize_breakdown VARCHAR,
+      tickets_data VARCHAR,
+      notes VARCHAR,
+      created_at TIMESTAMP
+    );
+  `;
+
   await pool.query(createUsersTable);
   await pool.query(createDrawsTable);
   await pool.query(createLivePrizesTable);
@@ -148,6 +172,7 @@ const createTables = async () => {
   await pool.query(createDailyOrdersTable);
   await pool.query(createAgentsTable);
   await pool.query(createAuditLogsTable);
+  await pool.query(createScanSessionsTable);
 };
 
 const initDB = async (retries = 1, delayMs = 1000) => {

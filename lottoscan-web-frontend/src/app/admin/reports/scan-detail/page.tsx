@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useAuth } from "@/lib/hooks";
 import { agent as agentApi } from "@/lib/api";
 import Button from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 interface PrizeTier {
   prize: number;
@@ -43,6 +45,7 @@ interface ScanDetailApiResponse {
 
 export default function ScanDetailReportPage() {
   const { user, loading, isAdmin, isAgent } = useAuth();
+  const { t, tLottery } = useLanguage();
   const router = useRouter();
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
@@ -189,10 +192,10 @@ export default function ScanDetailReportPage() {
                   href="/admin/reports"
                   className="text-text-secondary hover:text-text-primary transition-colors font-body text-xs font-bold border border-border-default px-2.5 py-1 rounded-lg bg-white shadow-sm"
                 >
-                  ← Reports
+                  {t("orders_back_dashboard")}
                 </Link>
                 <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary">
-                  Agent&apos;s Scan Detail
+                  {t("scan_detail_page_title")}
                 </h1>
               </div>
               <p className="text-text-secondary font-body text-xs font-semibold mt-1">
@@ -200,7 +203,8 @@ export default function ScanDetailReportPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <LanguageToggle variant="compact" />
               <Button
                 variant="secondary"
                 size="sm"
@@ -208,7 +212,7 @@ export default function ScanDetailReportPage() {
                 className="px-4 text-xs font-bold border border-border-default bg-white"
                 title="Print both NLB and DLB reports on separate pages"
               >
-                📄 Print Both Reports
+                📄 {t("scan_detail_print_both")}
               </Button>
               <Button
                 variant="primary"
@@ -216,7 +220,7 @@ export default function ScanDetailReportPage() {
                 onClick={handlePrintActive}
                 className="px-5 text-xs shadow-sm font-bold"
               >
-                🖨️ Print {activeBoard === "BOTH" ? "All" : activeBoard} Report
+                🖨️ {t("scan_detail_print_active")}
               </Button>
             </div>
           </div>
@@ -438,6 +442,7 @@ function PrintableBoardReport({
   formatPrintDate: (s: string) => string;
   hasPageBreak: boolean;
 }) {
+  const { t, tLottery } = useLanguage();
   const lotteries = report.lotteries || [];
   const grandTotalTickets = report.grandTotalTickets || 0;
   const grandTotalAmount = report.grandTotalAmount || 0;
@@ -456,7 +461,7 @@ function PrintableBoardReport({
             {boardTitle}
           </p>
           <h2 className="font-bold text-xl tracking-wide text-gray-900">
-            Agent&apos;s Scan Detail
+            {t("scan_detail_page_title")}
           </h2>
         </div>
 
@@ -500,16 +505,16 @@ function PrintableBoardReport({
               <thead>
                 <tr className="text-sm">
                   <th className="text-left py-2 pl-2 font-bold text-gray-800 w-[36%]">
-                    Lottery
+                    {t("table_lottery")}
                   </th>
                   <th className="text-right py-2 font-bold text-gray-800 w-[20%]">
-                    Prize
+                    {t("scan_detail_prize")}
                   </th>
                   <th className="text-center py-2 font-bold text-gray-800 w-[18%]">
-                    Tickets
+                    {t("scan_detail_no_tkts")}
                   </th>
                   <th className="text-right py-2 pr-2 font-bold text-gray-800 w-[26%]">
-                    Amount
+                    {t("scan_detail_amount")}
                   </th>
                 </tr>
               </thead>
@@ -523,7 +528,7 @@ function PrintableBoardReport({
                       colSpan={4}
                       className="pt-4 pb-1 pl-2 font-bold text-[#000080] text-sm tracking-wide"
                     >
-                      {lottery.name.toUpperCase()}
+                      {tLottery(lottery.name).toUpperCase()}
                     </td>
                   </tr>
 
@@ -561,7 +566,7 @@ function PrintableBoardReport({
               <tbody className="print-avoid-break">
                 <tr>
                   <td className="pt-4 pb-2 pl-2 font-bold text-[#000080] text-sm">
-                    Grand Total:
+                    {t("scan_detail_grand_total")}:
                   </td>
                   <td className="pt-4 pb-2" />
                   <td className="pt-4 pb-2 text-center">

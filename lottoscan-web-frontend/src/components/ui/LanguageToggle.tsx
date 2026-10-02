@@ -4,11 +4,38 @@ import { useLanguage } from "@/context/LanguageContext";
 
 interface LanguageToggleProps {
   className?: string;
-  variant?: "pill" | "compact";
+  variant?: "pill" | "compact" | "dark";
 }
 
 export default function LanguageToggle({ className = "", variant = "pill" }: LanguageToggleProps) {
   const { language, setLanguage } = useLanguage();
+
+  if (variant === "dark") {
+    return (
+      <div className={`inline-flex items-center rounded-lg bg-slate-900/90 p-0.5 border border-slate-800 ${className}`}>
+        <button
+          onClick={() => setLanguage("en")}
+          className={`px-2.5 py-1 text-xs font-bold font-display rounded-md transition-all ${
+            language === "en"
+              ? "bg-amber-400 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          EN
+        </button>
+        <button
+          onClick={() => setLanguage("si")}
+          className={`px-2.5 py-1 text-xs font-bold font-display rounded-md transition-all ${
+            language === "si"
+              ? "bg-amber-400 text-slate-950 shadow-sm"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          සිංහල
+        </button>
+      </div>
+    );
+  }
 
   if (variant === "compact") {
     return (

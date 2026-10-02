@@ -8,9 +8,12 @@ import { agent as agentApi } from "@/lib/api";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function AgentDashboardPage() {
   const { user, loading, isAgent, isAdmin, logout } = useAuth();
+  const { t, tLottery } = useLanguage();
   const router = useRouter();
 
   const [dailyData, setDailyData] = useState<any>(null);
@@ -96,19 +99,24 @@ export default function AgentDashboardPage() {
                       ? "bg-amber-100 text-amber-900 border border-amber-300"
                       : "bg-emerald-100 text-emerald-900 border border-emerald-300"
                   }`}>
-                    {boardAffiliation === "BOTH" ? "Dual Dealer (NLB & DLB)" : `${boardAffiliation} Dealer`}
+                    {boardAffiliation === "BOTH"
+                      ? t("agent_dual_dealer")
+                      : boardAffiliation === "NLB"
+                      ? t("agent_nlb_dealer")
+                      : t("agent_dlb_dealer")}
                   </span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">
-                    ● Verified Active
+                    ● {t("agent_verified_active")}
                   </span>
                 </div>
                 <p className="text-xs text-text-secondary font-body mt-1">
-                  📍 {location} • Official Agent ID: <code className="font-mono text-text-primary">{user?.id || user?.userId || "agn-master"}</code>
+                  📍 {location} • {t("agent_official_id")}: <code className="font-mono text-text-primary">{user?.id || user?.userId || "agn-master"}</code>
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+              <LanguageToggle variant="compact" />
               <Button
                 variant="secondary"
                 size="sm"
@@ -116,7 +124,7 @@ export default function AgentDashboardPage() {
                 loading={dataLoading}
                 className="text-xs font-bold"
               >
-                🔄 Refresh
+                🔄 {t("agent_refresh")}
               </Button>
               <Button
                 variant="ghost"
@@ -124,7 +132,7 @@ export default function AgentDashboardPage() {
                 onClick={logout}
                 className="text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200"
               >
-                🚪 Sign Out
+                🚪 {t("agent_sign_out")}
               </Button>
             </div>
           </div>
@@ -135,12 +143,12 @@ export default function AgentDashboardPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Payouts Handled Today
+                {t("agent_payouts_today")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-gold-dark mt-1">
                 Rs. {totalPrize.toLocaleString()}
               </p>
-              <p className="text-[10px] text-text-muted mt-0.5">{totalClaimsCount} winning tickets paid</p>
+              <p className="text-[10px] text-text-muted mt-0.5">{totalClaimsCount} {t("agent_tickets_paid_count")}</p>
             </div>
             <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
               💰
@@ -150,12 +158,12 @@ export default function AgentDashboardPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Winning Claims Paid
+                {t("agent_claims_paid")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
-                {totalClaimsCount} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
+                {totalClaimsCount} <span className="text-xs font-body font-semibold text-text-muted">{t("agent_claims_tickets")}</span>
               </p>
-              <p className="text-[10px] text-text-muted mt-0.5">Recorded counter payouts</p>
+              <p className="text-[10px] text-text-muted mt-0.5">{t("agent_recorded_payouts")}</p>
             </div>
             <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
               🎟️
@@ -165,12 +173,12 @@ export default function AgentDashboardPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Registered Staff & Counters
+                {t("agent_registered_staff")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
-                {employees.length} <span className="text-xs font-body font-semibold text-text-muted">Staff</span>
+                {employees.length} <span className="text-xs font-body font-semibold text-text-muted">{t("agent_staff_count")}</span>
               </p>
-              <p className="text-[10px] text-text-muted mt-0.5">Assigned to counter branches</p>
+              <p className="text-[10px] text-text-muted mt-0.5">{t("agent_assigned_branches")}</p>
             </div>
             <div className="w-11 h-11 rounded-full bg-blue-50 border border-blue-200 flex items-center justify-center text-xl shrink-0">
               👥
@@ -180,12 +188,12 @@ export default function AgentDashboardPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Settlement Date
+                {t("agent_settlement_date")}
               </p>
               <p className="text-xl sm:text-2xl font-display font-extrabold text-text-primary mt-1">
                 {todayStr}
               </p>
-              <p className="text-[10px] text-text-muted mt-0.5">Active Reconciliation Cycle</p>
+              <p className="text-[10px] text-text-muted mt-0.5">{t("agent_active_cycle")}</p>
             </div>
             <div className="w-11 h-11 rounded-full bg-brand-section border border-border-default flex items-center justify-center text-xl shrink-0">
               📅
@@ -196,7 +204,7 @@ export default function AgentDashboardPage() {
         {/* ─── Operations Command Center (Quick Launch Hub) ─── */}
         <div className="space-y-3">
           <h2 className="text-sm font-display font-extrabold uppercase tracking-wider text-text-secondary">
-            Agency Operations Command Hub
+            {t("agent_command_hub")}
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -210,14 +218,14 @@ export default function AgentDashboardPage() {
                   ⚡
                 </div>
                 <h3 className="font-display font-extrabold text-base text-text-primary group-hover:text-gold-dark transition-colors">
-                  Continuous Bulk Scanner
+                  {t("agent_bulk_scanner_title")}
                 </h3>
                 <p className="text-xs text-text-secondary font-body mt-1">
-                  High-speed camera & laser barcode gun scanning with 2.5s latch & live duplicate rejection
+                  {t("agent_bulk_scanner_desc")}
                 </p>
               </div>
               <div className="pt-4 text-xs font-bold text-gold-dark flex items-center gap-1">
-                <span>Launch Scanner</span>
+                <span>{t("agent_launch_scanner")}</span>
                 <span>→</span>
               </div>
             </Link>
@@ -232,14 +240,14 @@ export default function AgentDashboardPage() {
                   📋
                 </div>
                 <h3 className="font-display font-extrabold text-base text-text-primary group-hover:text-blue-700 transition-colors">
-                  Daily Orders & Indents
+                  {t("orders_page_title")}
                 </h3>
                 <p className="text-xs text-text-secondary font-body mt-1">
-                  Counter-wise ticket distribution matrix, daily returns, and sales commission calculations
+                  {t("agent_orders_desc")}
                 </p>
               </div>
               <div className="pt-4 text-xs font-bold text-blue-600 flex items-center gap-1">
-                <span>Manage Orders</span>
+                <span>{t("agent_manage_orders")}</span>
                 <span>→</span>
               </div>
             </Link>
@@ -254,14 +262,14 @@ export default function AgentDashboardPage() {
                   👥
                 </div>
                 <h3 className="font-display font-extrabold text-base text-text-primary group-hover:text-emerald-700 transition-colors">
-                  Counter Staff & Sellers
+                  {t("agent_staff_title")}
                 </h3>
                 <p className="text-xs text-text-secondary font-body mt-1">
-                  Roster of ticket sellers, counter branch locations, commission rates, and payouts
+                  {t("agent_staff_desc")}
                 </p>
               </div>
               <div className="pt-4 text-xs font-bold text-emerald-600 flex items-center gap-1">
-                <span>View Staff Roster</span>
+                <span>{t("agent_view_staff")}</span>
                 <span>→</span>
               </div>
             </Link>
@@ -276,14 +284,14 @@ export default function AgentDashboardPage() {
                   💰
                 </div>
                 <h3 className="font-display font-extrabold text-base text-text-primary group-hover:text-purple-700 transition-colors">
-                  Winning Claims Audit
+                  {t("agent_claims_audit_title")}
                 </h3>
                 <p className="text-xs text-text-secondary font-body mt-1">
-                  Reconcile paid ticket serials against QuestDB with duplicate claim fraud protection
+                  {t("agent_claims_audit_desc")}
                 </p>
               </div>
               <div className="pt-4 text-xs font-bold text-purple-600 flex items-center gap-1">
-                <span>Audit Claims</span>
+                <span>{t("agent_audit_claims")}</span>
                 <span>→</span>
               </div>
             </Link>
@@ -295,27 +303,27 @@ export default function AgentDashboardPage() {
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-border-default">
             <div>
               <h3 className="text-base font-display font-extrabold text-text-primary">
-                Recent Winning Ticket Payouts Processed
+                {t("agent_recent_payouts_title")}
               </h3>
               <p className="text-xs text-text-secondary">
-                Verified ticket serials recorded under your agency code ({agentCode})
+                {t("agent_recent_payouts_desc")} ({agentCode})
               </p>
             </div>
             <Link
               href="/admin/reports"
               className="text-xs font-bold text-gold-dark hover:underline"
             >
-              Full Payout Ledger →
+              {t("agent_full_ledger")}
             </Link>
           </div>
 
           {claimsList.length === 0 ? (
             <div className="py-12 text-center text-xs text-text-muted font-body">
               <div className="text-3xl mb-2">🎟️</div>
-              <p className="font-bold text-text-secondary">No ticket payouts recorded today yet.</p>
-              <p className="text-[11px] mt-0.5">Use the Bulk Scanner or Record Claim tool to verify customer tickets.</p>
+              <p className="font-bold text-text-secondary">{t("agent_no_payouts_today")}</p>
+              <p className="text-[11px] mt-0.5">{t("agent_no_payouts_hint")}</p>
               <Link href="/scan" className="inline-block mt-3 px-4 py-2 bg-gold text-white font-bold rounded-xl text-xs">
-                ⚡ Open Bulk Scanner
+                ⚡ {t("agent_launch_scanner")}
               </Link>
             </div>
           ) : (
@@ -323,20 +331,20 @@ export default function AgentDashboardPage() {
               <table className="w-full text-left border-collapse text-xs font-body">
                 <thead>
                   <tr className="bg-brand-section text-text-secondary font-bold text-[11px] uppercase tracking-wider border-b border-border-default">
-                    <th className="py-2.5 px-3">Serial</th>
-                    <th className="py-2.5 px-3">Lottery</th>
-                    <th className="py-2.5 px-3">Board</th>
-                    <th className="py-2.5 px-3">Tier</th>
-                    <th className="py-2.5 px-3">Counter Staff</th>
-                    <th className="py-2.5 px-3 text-right">Prize (Rs.)</th>
-                    <th className="py-2.5 px-3 text-center">Status</th>
+                    <th className="py-2.5 px-3">{t("table_serial")}</th>
+                    <th className="py-2.5 px-3">{t("table_lottery")}</th>
+                    <th className="py-2.5 px-3">{t("table_board")}</th>
+                    <th className="py-2.5 px-3">{t("table_tier")}</th>
+                    <th className="py-2.5 px-3">{t("table_counter_staff")}</th>
+                    <th className="py-2.5 px-3 text-right">{t("table_prize")}</th>
+                    <th className="py-2.5 px-3 text-center">{t("table_status")}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-default/60">
                   {claimsList.slice(0, 5).map((claim, idx) => (
                     <tr key={claim.id || idx} className="hover:bg-brand-section/40 transition-colors">
                       <td className="py-2.5 px-3 font-mono font-bold">{claim.ticket_serial || claim.ticketSerial}</td>
-                      <td className="py-2.5 px-3 font-extrabold">{claim.lottery_name || claim.lotteryName}</td>
+                      <td className="py-2.5 px-3 font-extrabold">{tLottery(claim.lottery_name || claim.lotteryName)}</td>
                       <td className="py-2.5 px-3">
                         <span className={`px-1.5 py-0.5 rounded text-[10px] font-black ${
                           claim.board === "NLB" ? "bg-blue-100 text-blue-900" : "bg-amber-100 text-amber-900"
@@ -351,7 +359,7 @@ export default function AgentDashboardPage() {
                       </td>
                       <td className="py-2.5 px-3 text-center">
                         <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold">
-                          Paid ✓
+                          {t("table_paid")}
                         </span>
                       </td>
                     </tr>

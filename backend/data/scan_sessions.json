@@ -1,0 +1,168 @@
+[
+  {
+    "id": "ca329765-f5fa-43cd-90fb-65b35e3c8335",
+    "sessionNumber": "SES-20260930-6260",
+    "agentId": "default-agent",
+    "employeeId": "d66aab00-8208-496b-936e-30634302ebb7",
+    "employeeName": "Wijethunga",
+    "counterName": "Counter 01 - Pettah",
+    "startedAt": "2026-09-30T06:12:06.417Z",
+    "endedAt": "2026-09-30T06:12:06.444Z",
+    "status": "completed",
+    "totalTickets": 3,
+    "winningTickets": 2,
+    "nonWinningTickets": 1,
+    "totalWinningAmount": 280,
+    "returnShortageAmount": 120,
+    "netTotalAmount": 160,
+    "prizeBreakdown": {
+      "tiers": [
+        {
+          "prize": 40,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 80,
+          "count": 1,
+          "subtotal": 80
+        },
+        {
+          "prize": 120,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 160,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 200,
+          "count": 1,
+          "subtotal": 200
+        },
+        {
+          "prize": 240,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 400,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 500,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 1000,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 2000,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 4000,
+          "count": 0,
+          "subtotal": 0
+        }
+      ],
+      "extras": [],
+      "allTiers": [
+        {
+          "prize": 40,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 80,
+          "count": 1,
+          "subtotal": 80
+        },
+        {
+          "prize": 120,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 160,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 200,
+          "count": 1,
+          "subtotal": 200
+        },
+        {
+          "prize": 240,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 400,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 500,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 1000,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 2000,
+          "count": 0,
+          "subtotal": 0
+        },
+        {
+          "prize": 4000,
+          "count": 0,
+          "subtotal": 0
+        }
+      ],
+      "winningTicketsCount": 2,
+      "nonWinningTicketsCount": 1,
+      "totalTicketsCount": 3,
+      "totalWinningAmount": 280
+    },
+    "tickets": [
+      {
+        "isWinner": true,
+        "isExpired": false,
+        "serial": "TCK-001",
+        "prizeAmount": 200,
+        "board": "NLB",
+        "lotteryName": "Govisetha"
+      },
+      {
+        "isWinner": true,
+        "isExpired": false,
+        "serial": "TCK-002",
+        "prizeAmount": 80,
+        "board": "DLB",
+        "lotteryName": "Ada Kotipathi"
+      },
+      {
+        "isWinner": false,
+        "isExpired": false,
+        "serial": "TCK-003",
+        "prizeAmount": 0,
+        "board": "NLB",
+        "lotteryName": "Mega Power"
+      }
+    ],
+    "notes": "",
+    "createdAt": "2026-09-30T06:12:06.443Z"
+  }
+]

@@ -15,11 +15,17 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { scanTicketImage, decodeCanvasWithZXing } from '@/lib/ticketScanner';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface LaptopQrScannerProps {
   onScanSuccess: (decodedText: string) => void;
   className?: string;
   autoCooldownMs?: number;
+  disableBuiltinBeep?: boolean;
+  isProcessing?: boolean;
+  singleTicketMode?: boolean;
+  lastScanStatus?: 'success' | 'already_scanned' | 'evaluating' | null;
+  statusMessage?: string;
 }
 
 /** Check if device name suggests a virtual/software camera */
@@ -31,7 +37,13 @@ export default function LaptopQrScanner({
   onScanSuccess,
   className = '',
   autoCooldownMs = 2500,
+  disableBuiltinBeep = false,
+  isProcessing = false,
+  singleTicketMode = false,
+  lastScanStatus = null,
+  statusMessage = '',
 }: LaptopQrScannerProps) {
+  const { t } = useLanguage();
   const [cameraReady, setCameraReady] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastScanned, setLastScanned] = useState<string | null>(null);
@@ -43,6 +55,7 @@ export default function LaptopQrScanner({
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isCooldownRef = useRef(false);
+  const isProcessingRef = useRef(isProcessing);
   const lastScannedTextRef = useRef<string>('');
   const lastScannedTimeRef = useRef<number>(0);
   const isMountedRef = useRef(true);
@@ -53,6 +66,10 @@ export default function LaptopQrScanner({
 
   const reactId = useId();
   const containerId = useRef(`lotto-qr-${reactId.replace(/[^a-zA-Z0-9_-]/g, '') || 'webcam'}`).current;
+
+  useEffect(() => {
+    isProcessingRef.current = isProcessing;
+  }, [isProcessing]);
 
   useEffect(() => {
     onScanSuccessRef.current = onScanSuccess;
@@ -103,8 +120,10 @@ export default function LaptopQrScanner({
       const cleanText = decodedText.trim();
       if (!cleanText) return;
 
-      const now = Date.now();
+      if (isProcessingRef.current) return;
       if (isCooldownRef.current) return;
+
+      const now = Date.now();
       if (
         lastScannedTextRef.current === cleanText &&
         now - lastScannedTimeRef.current < autoCooldownMsRef.current
@@ -117,14 +136,16 @@ export default function LaptopQrScanner({
       lastScannedTimeRef.current = now;
 
       setLastScanned(cleanText);
-      playBeep();
+      if (!disableBuiltinBeep) {
+        playBeep();
+      }
       onScanSuccessRef.current?.(cleanText);
 
       setTimeout(() => {
         isCooldownRef.current = false;
       }, autoCooldownMsRef.current);
     },
-    [playBeep]
+    [autoCooldownMs, disableBuiltinBeep, playBeep]
   );
 
   const stopScanner = useCallback(async () => {
@@ -160,7 +181,7 @@ export default function LaptopQrScanner({
     const centerCtx = centerCanvas.getContext('2d', { willReadFrequently: true });
 
     frameScanIntervalRef.current = setInterval(() => {
-      if (!isMountedRef.current || isCooldownRef.current) return;
+      if (!isMountedRef.current || isCooldownRef.current || isProcessingRef.current) return;
       const video = document.querySelector<HTMLVideoElement>(`#${containerId} video`);
       if (!video || video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
         return;
@@ -495,16 +516,21 @@ export default function LaptopQrScanner({
           <Camera className="w-5 h-5 text-amber-400 shrink-0" />
           <div>
             <h2 className="text-sm font-semibold text-slate-100 uppercase tracking-wide">
-              Ticket Camera Scanner
+              {t("camera_scanner_title")}
             </h2>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
+          {singleTicketMode && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-300 bg-amber-950/70 border border-amber-700/60 px-2.5 py-0.5 rounded-full font-mono">
+              ⚡ {t("camera_single_ticket_badge")}
+            </span>
+          )}
           {cameraReady && (
             <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Live Camera
+              {t("camera_live_badge")}
             </span>
           )}
         </div>
@@ -514,7 +540,7 @@ export default function LaptopQrScanner({
       {devices.length > 1 && (
         <div className="w-full mb-3 flex items-center gap-2 bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5">
           <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">
-            Camera:
+            {t("camera_dropdown_label")}
           </span>
           <select
             value={selectedDeviceId}
@@ -554,6 +580,38 @@ export default function LaptopQrScanner({
           className="w-full h-full [&_video]:!object-cover [&_video]:!w-full [&_video]:!h-full"
         />
 
+        {/* Single-Ticket Processing Lock Overlay */}
+        {isProcessing && (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 text-amber-300 z-20 pointer-events-none animate-in fade-in duration-150">
+            <RefreshCw className="w-8 h-8 animate-spin text-amber-400" />
+            <span className="font-bold text-xs uppercase tracking-wider bg-slate-900/90 px-3.5 py-1 rounded-full border border-amber-500/40 text-amber-300">
+              {t("camera_evaluating_ticket")}
+            </span>
+          </div>
+        )}
+
+        {/* Already Scanned Visual Overlay Banner */}
+        {lastScanStatus === 'already_scanned' && (
+          <div className="absolute inset-x-3 top-3 z-30 bg-rose-950/95 border-2 border-rose-500 text-rose-200 p-2.5 rounded-xl flex items-center gap-2.5 shadow-2xl animate-shake pointer-events-none">
+            <AlertTriangle className="w-6 h-6 text-rose-400 shrink-0" />
+            <div className="overflow-hidden">
+              <div className="text-xs font-black text-white uppercase tracking-wider">{t("camera_already_scanned")}</div>
+              <div className="text-[11px] text-rose-300 font-medium">{t("camera_already_scanned_sub")}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Success Overlay Banner */}
+        {lastScanStatus === 'success' && (
+          <div className="absolute inset-x-3 top-3 z-30 bg-emerald-950/95 border-2 border-emerald-500 text-emerald-200 p-2.5 rounded-xl flex items-center gap-2.5 shadow-2xl animate-in fade-in pointer-events-none">
+            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
+            <div className="overflow-hidden">
+              <div className="text-xs font-black text-white uppercase tracking-wider">{t("camera_ticket_scanned")}</div>
+              <div className="text-[11px] text-emerald-300 font-medium">{t("camera_ticket_scanned_sub")}</div>
+            </div>
+          </div>
+        )}
+
         {/* Viewfinder Target Reticle Overlay */}
         {cameraReady && (
           <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
@@ -569,7 +627,7 @@ export default function LaptopQrScanner({
               <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-rose-500 to-transparent animate-pulse shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
 
               <span className="text-[11px] font-mono text-amber-300/80 bg-slate-950/70 px-2 py-0.5 rounded backdrop-blur-sm">
-                Center QR Code or Barcode here
+                {t("camera_center_qr_hint")}
               </span>
             </div>
           </div>
@@ -579,7 +637,7 @@ export default function LaptopQrScanner({
         {!cameraReady && !errorMessage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/90 text-slate-400 text-xs">
             <RefreshCw className="w-7 h-7 animate-spin text-amber-400" />
-            <span className="font-medium">Connecting to webcam...</span>
+            <span className="font-medium">{t("camera_connecting")}</span>
           </div>
         )}
 
@@ -587,12 +645,14 @@ export default function LaptopQrScanner({
         {errorMessage && (
           <div className="absolute inset-0 flex flex-col items-center justify-center p-5 text-center bg-slate-950/95 text-rose-400 text-xs gap-3 z-10">
             <AlertTriangle className="w-8 h-8 text-rose-400 shrink-0" />
-            <p className="font-semibold text-sm text-rose-300 max-w-sm">{errorMessage}</p>
+            <p className="font-semibold text-sm text-rose-300 max-w-sm">
+              {t("camera_blocked_msg")}
+            </p>
 
             <div className="text-slate-400 text-[11px] leading-relaxed space-y-1 max-w-xs text-left bg-slate-900/80 p-3 rounded-lg border border-slate-800">
-              <p className="font-semibold text-slate-200">Troubleshooting:</p>
-              <p>• If using Chrome, click the <span className="text-amber-400 font-bold">🔒 lock icon</span> next to the URL and set <span className="text-amber-400 font-bold">Camera → Allow</span>.</p>
-              <p>• If you have <span className="text-amber-400 font-bold">OBS</span> or other apps open, close them or select your physical webcam above.</p>
+              <p className="font-semibold text-slate-200">{t("camera_troubleshoot_title")}</p>
+              <p>• {t("camera_troubleshoot_1")}</p>
+              <p>• {t("camera_troubleshoot_2")}</p>
             </div>
 
             <div className="flex flex-wrap gap-2 justify-center mt-1">
@@ -601,14 +661,14 @@ export default function LaptopQrScanner({
                 onClick={initCameras}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold transition-colors cursor-pointer text-xs"
               >
-                <RotateCcw className="w-3.5 h-3.5" /> Retry Camera
+                <RotateCcw className="w-3.5 h-3.5" /> {t("camera_retry_btn")}
               </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-colors cursor-pointer border border-slate-700 text-xs"
               >
-                <Upload className="w-3.5 h-3.5" /> Upload Photo Instead
+                <Upload className="w-3.5 h-3.5" /> {t("camera_upload_instead_btn")}
               </button>
             </div>
           </div>
@@ -632,7 +692,7 @@ export default function LaptopQrScanner({
           className="w-full sm:w-auto flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-xs shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Sparkles className="w-4 h-4" />
-          <span>📸 Capture & Scan Ticket</span>
+          <span>📸 {t("camera_capture_scan_btn")}</span>
         </button>
 
         <button
@@ -641,13 +701,17 @@ export default function LaptopQrScanner({
           className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-colors cursor-pointer"
         >
           <Upload className="w-3.5 h-3.5" />
-          <span>Upload Image</span>
+          <span>{t("camera_upload_img_btn")}</span>
         </button>
       </div>
 
       {/* Guidance Note */}
       <p className="text-[11px] text-slate-400 text-center mt-2.5">
-        Hold the ticket <span className="text-amber-400 font-semibold">15–20 cm away</span> with good light, or tap <span className="text-amber-400 font-semibold">Capture & Scan</span> to read instantly.
+        {t("camera_hold_hint_1")}{' '}
+        <span className="text-amber-400 font-semibold">{t("camera_hold_hint_2")}</span>{' '}
+        {t("camera_hold_hint_3")}{' '}
+        <span className="text-amber-400 font-semibold">{t("camera_hold_hint_4")}</span>{' '}
+        {t("camera_hold_hint_5")}
       </p>
 
       {/* Last Result Notification */}
@@ -656,7 +720,7 @@ export default function LaptopQrScanner({
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="overflow-hidden">
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-              Scanned Successfully
+              {t("camera_scanned_success")}
             </div>
             <div className="text-xs text-slate-200 font-mono truncate">{lastScanned}</div>
           </div>

@@ -8,6 +8,8 @@ import { agent as agentApi } from "@/lib/api";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 interface LotteryRow {
   name: string;
@@ -23,6 +25,7 @@ interface Employee {
 
 export default function DailyOrdersPage() {
   const { user, loading, isAdmin, isAgent } = useAuth();
+  const { t, tLottery } = useLanguage();
   const router = useRouter();
 
   // Selected Date (defaults to today YYYY-MM-DD)
@@ -350,29 +353,30 @@ export default function DailyOrdersPage() {
           <div>
             <div className="flex items-center gap-3">
               <Link
-                href="/admin/dashboard"
+                href="/agent/dashboard"
                 className="text-text-secondary hover:text-text-primary transition-colors font-body text-xs font-bold border border-border-default px-2.5 py-1 rounded-lg bg-white shadow-sm"
               >
-                ← Dashboard
+                {t("orders_back_dashboard")}
               </Link>
               <h1 className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary">
-                Daily Orders & Commission
+                {t("orders_page_title")}
               </h1>
             </div>
             <p className="text-text-secondary font-body text-xs font-semibold mt-1">
-              Create day-by-day ticket order allocations for sellers and calculate commissions automatically.
+              {t("orders_page_subtitle")}
             </p>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center gap-2.5">
+            <LanguageToggle variant="compact" />
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsManageModalOpen(true)}
               className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-red-400 hover:text-red-700"
             >
-              👥 Manage / Delete Sellers ({employees.length})
+              👥 {t("orders_manage_sellers")} ({employees.length})
             </Button>
             <Button
               variant="outline"
@@ -380,7 +384,7 @@ export default function DailyOrdersPage() {
               onClick={() => setIsEmpModalOpen(true)}
               className="border-border-default bg-white text-text-primary font-bold text-xs shadow-sm hover:border-gold"
             >
-              ➕ Add Seller
+              ➕ {t("orders_add_seller")}
             </Button>
             <Button
               variant="primary"
@@ -389,7 +393,7 @@ export default function DailyOrdersPage() {
               loading={saveLoading}
               className="px-5 text-xs shadow-sm font-bold bg-gold hover:bg-gold-dark text-white"
             >
-              💾 Save Order Sheet
+              💾 {t("orders_save_sheet")}
             </Button>
             <Button
               variant="outline"
@@ -397,7 +401,7 @@ export default function DailyOrdersPage() {
               onClick={handlePrint}
               className="border-border-default bg-white text-text-secondary hover:text-text-primary font-bold text-xs shadow-sm"
             >
-              🖨️ Export / Print Sheet
+              🖨️ {t("orders_export_print")}
             </Button>
           </div>
         </div>
@@ -421,7 +425,7 @@ export default function DailyOrdersPage() {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <span className="text-text-secondary text-xs font-bold uppercase tracking-wider">
-                Select Order Date:
+                {t("orders_select_date")}
               </span>
               <input
                 type="date"
@@ -441,24 +445,24 @@ export default function DailyOrdersPage() {
                     : "bg-brand-section text-text-secondary hover:text-text-primary border border-border-default"
                 }`}
               >
-                Today
+                {t("orders_today")}
               </button>
               <button
                 type="button"
                 onClick={() => setQuickDate(1)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-section text-text-secondary hover:text-text-primary border border-border-default transition-all"
               >
-                Yesterday
+                {t("orders_yesterday")}
               </button>
               <button
                 type="button"
                 onClick={() => setQuickDate(2)}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-brand-section text-text-secondary hover:text-text-primary border border-border-default transition-all"
               >
-                2 Days Ago
+                {t("orders_2days_ago")}
               </button>
               <span className="text-text-muted text-xs font-mono pl-2">
-                Viewing Sheet For: <strong className="text-text-primary">{selectedDate}</strong>
+                {t("orders_viewing_for")} <strong className="text-text-primary">{selectedDate}</strong>
               </span>
             </div>
           </div>
@@ -469,13 +473,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Tickets
+                {t("orders_total_tickets")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-text-primary mt-1">
                 {grandTotals.totalIssued.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Total after adding additional
+                {t("orders_total_after_add")}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-lg shrink-0">
@@ -486,13 +490,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Remaining Tickets
+                {t("orders_remaining_tickets")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 mt-1">
                 {grandTotals.totalRemaining.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Day remaining tickets
+                {t("orders_remaining_desc")}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-lg shrink-0">
@@ -503,13 +507,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Return Tickets
+                {t("orders_unsold_returns")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-rose-600 mt-1">
                 {grandTotals.totalReturns.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Tickets</span>
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Unsold returned tickets
+                {t("orders_unsold_returns_desc")}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center text-lg shrink-0">
@@ -520,13 +524,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Net Sold Tickets
+                {t("orders_net_sold")}
               </p>
               <p className="text-2xl sm:text-3xl font-display font-extrabold text-win mt-1">
                 {grandTotals.totalNetSold.toLocaleString()} <span className="text-xs font-body font-semibold text-text-muted">Sold</span>
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Total sold by sellers
+                {t("orders_net_sold_desc")}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-lg shrink-0">
@@ -537,13 +541,13 @@ export default function DailyOrdersPage() {
           <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between col-span-2 md:col-span-1">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
-                Total Payable (@ Rs. 35)
+                {t("orders_total_payable")}
               </p>
               <p className="text-xl sm:text-2xl font-display font-extrabold text-win mt-1">
                 Rs. {grandTotals.totalPayable.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
               <p className="text-[11px] font-body text-text-muted font-medium mt-0.5">
-                Commission: Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {t("orders_commission_label")}: Rs. {grandTotals.totalCommission.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-lg shrink-0">
@@ -557,14 +561,14 @@ export default function DailyOrdersPage() {
           <div className="p-4 bg-brand-section/50 border-b border-border-default flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-base font-display font-extrabold text-text-primary">
-                Daily Order Allocation Sheet ({selectedDate})
+                {t("orders_sheet_title")} ({selectedDate})
               </h2>
               <p className="text-xs text-text-secondary font-body">
-                Enter ticket order counts for each employee per lottery. The rightmost column aggregates total tickets for each lottery automatically.
+                {t("orders_sheet_desc")}
               </p>
             </div>
             <span className="text-xs font-mono font-bold px-2.5 py-1 bg-white border border-border-default rounded-md text-text-secondary">
-              {employees.length} Employees Active
+              {employees.length} {t("orders_employees_active")}
             </span>
           </div>
 
@@ -587,7 +591,7 @@ export default function DailyOrdersPage() {
                 <thead className="sticky top-0 z-20 bg-amber-400 text-gray-900 uppercase font-extrabold shadow-sm">
                   <tr>
                     <th className="sticky left-0 z-30 bg-amber-400 border border-gray-400 p-2.5 text-xs tracking-wider min-w-[200px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      Lottery Name / Seller
+                      {t("orders_lottery_seller")}
                     </th>
                     {employees.map((emp) => {
                       const currentRate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
@@ -619,8 +623,8 @@ export default function DailyOrdersPage() {
 
                     {/* Rightmost Total Column */}
                     <th className="sticky right-0 z-30 bg-amber-500 text-gray-950 border border-gray-400 p-2 text-center min-w-[110px] font-black shadow-[-2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      <span className="block text-xs">TOTAL TICKETS</span>
-                      <span className="block text-[9px] font-medium text-gray-900">(Lottery Total)</span>
+                      <span className="block text-xs">{t("orders_total_tickets_col")}</span>
+                      <span className="block text-[9px] font-medium text-gray-900">({t("orders_lottery_total")})</span>
                     </th>
                   </tr>
                 </thead>
@@ -645,7 +649,7 @@ export default function DailyOrdersPage() {
                         }`}>
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-extrabold text-text-primary truncate">
-                              {lIdx + 1}. {lot.name}
+                              {lIdx + 1}. {tLottery(lot.name)}
                             </span>
                             <span
                               className={`text-[9px] px-1.5 py-0.5 rounded font-black shrink-0 ${
@@ -698,7 +702,7 @@ export default function DailyOrdersPage() {
                   {/* Row 1: Total Ordered per employee */}
                   <tr className="bg-amber-200 text-gray-950 border-t-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-200 border border-gray-300 p-2.5 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL ORDERED
+                      {t("orders_row_total_ordered")}
                     </td>
                     {employees.map((emp) => (
                       <td key={emp.id} className="border border-gray-300 p-2 text-center font-black text-sm">
@@ -713,7 +717,7 @@ export default function DailyOrdersPage() {
                   {/* Row 2: Additional Tickets (NEW ROW) */}
                   <tr className="bg-sky-100 text-sky-950 border-y border-sky-300">
                     <td className="sticky left-0 z-30 bg-sky-100 text-sky-950 border border-sky-300 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      ADDITIONAL TICKETS
+                      {t("orders_row_additional")}
                     </td>
                     {employees.map((emp) => {
                       const addVal = additional[emp.id] ?? 0;
@@ -739,7 +743,7 @@ export default function DailyOrdersPage() {
                   {/* Row 3: Total Tickets (Ordered + Additional) */}
                   <tr className="bg-amber-300/80 text-gray-950 border-y-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-300 text-gray-950 border border-amber-400 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL TICKETS
+                      {t("orders_row_total_issued")}
                     </td>
                     {employees.map((emp) => (
                       <td key={emp.id} className="border border-amber-300 p-2 text-center font-black text-sm text-gray-950">
@@ -754,7 +758,7 @@ export default function DailyOrdersPage() {
                   {/* Row 4: Remaining Tickets of the Day */}
                   <tr className="bg-amber-100 text-amber-950 border-y border-amber-300">
                     <td className="sticky left-0 z-30 bg-amber-100 text-amber-950 border border-amber-300 p-2 font-black uppercase shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      REMAINING TICKETS
+                      {t("orders_row_remaining")}
                     </td>
                     {employees.map((emp) => {
                       const remVal = remaining[emp.id] ?? 0;
@@ -780,7 +784,7 @@ export default function DailyOrdersPage() {
                   {/* Row 5: Returns */}
                   <tr className="bg-red-50 text-red-950 border-y border-red-200">
                     <td className="sticky left-0 z-30 bg-red-100 text-red-950 border border-red-200 p-2 font-bold uppercase text-[11px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      RETURNS
+                      {t("orders_row_returns")}
                     </td>
                     {employees.map((emp) => {
                       const retVal = returns[emp.id] ?? 0;
@@ -806,7 +810,7 @@ export default function DailyOrdersPage() {
                   {/* Row 6: Net Sold */}
                   <tr className="bg-emerald-100 text-emerald-950 border-b border-emerald-300">
                     <td className="sticky left-0 z-30 bg-emerald-100 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      NET SOLD
+                      {t("orders_row_net_sold")}
                     </td>
                     {employees.map((emp) => (
                       <td key={emp.id} className="border border-gray-300 p-2 text-center font-extrabold text-emerald-900 text-sm">
@@ -821,7 +825,7 @@ export default function DailyOrdersPage() {
                   {/* Row 6: Commission Rate Input */}
                   <tr className="bg-sky-50 text-sky-950 border-b border-sky-200">
                     <td className="sticky left-0 z-30 bg-sky-50 border border-gray-300 p-2 font-black uppercase text-sky-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      COMMISSION RATE (RS./TKT)
+                      {t("orders_row_commission_rate")}
                     </td>
                     {employees.map((emp) => {
                       const rate = commissionRates[emp.id] !== undefined ? commissionRates[emp.id] : emp.commissionRate || 2.5;
@@ -846,7 +850,7 @@ export default function DailyOrdersPage() {
                   {/* Row 7: Seller Commission */}
                   <tr className="bg-emerald-50 text-emerald-950 border-b border-emerald-200">
                     <td className="sticky left-0 z-30 bg-emerald-50 border border-gray-300 p-2 font-black uppercase text-emerald-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      COMMISSION
+                      {t("orders_row_commission")}
                     </td>
                     {employees.map((emp) => {
                       const comm = colTotals.commissionAmounts[emp.id] || 0;
@@ -864,7 +868,7 @@ export default function DailyOrdersPage() {
                   {/* Row 8: Total Payable */}
                   <tr className="bg-amber-100 text-amber-950 border-t-2 border-amber-400">
                     <td className="sticky left-0 z-30 bg-amber-100 border border-gray-300 p-2.5 font-black uppercase text-amber-950 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.15)]">
-                      TOTAL PAYABLE (@ RS. 35)
+                      {t("orders_row_total_payable")}
                     </td>
                     {employees.map((emp) => {
                       const payable = colTotals.totalPayable[emp.id] || 0;
@@ -1056,10 +1060,16 @@ export default function DailyOrdersPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-200 rounded-md font-mono font-bold text-xs">
                           Rs. {rate.toFixed(2)}/tkt
                         </span>
+                        <Link
+                          href={`/admin/employees/${emp.id}`}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          👤 Profile &amp; Sessions
+                        </Link>
                         <button
                           type="button"
                           onClick={() => {

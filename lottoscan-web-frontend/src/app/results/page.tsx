@@ -32,9 +32,38 @@ export default function ResultsPage() {
   const [search, setSearch] = useState("");
   const [filterLottery, setFilterLottery] = useState("");
 
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    // If user is searching and filterLottery contradicts the search, clear filterLottery
+    if (filterLottery && value.trim()) {
+      const q = value.trim().toLowerCase();
+      if (!filterLottery.toLowerCase().includes(q)) {
+        setFilterLottery("");
+      }
+    }
+  };
+
+  const handleLotteryChange = (value: string) => {
+    setFilterLottery(value);
+    // If there was an active search term that doesn't match the new lottery selection, clear it
+    if (value && search.trim()) {
+      const q = search.trim().toLowerCase();
+      if (!value.toLowerCase().includes(q) && isNaN(Number(q))) {
+        setSearch("");
+      }
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
-    const lotteryParam = filterLottery?.trim() || undefined;
+    // If search is active and doesn't match filterLottery, do not restrict the backend query to filterLottery
+    let lotteryParam = filterLottery?.trim() || undefined;
+    if (lotteryParam && search.trim()) {
+      const q = search.trim().toLowerCase();
+      if (!lotteryParam.toLowerCase().includes(q)) {
+        lotteryParam = undefined;
+      }
+    }
 
     let request;
     if (!isRangeMode && selectedDate) {
@@ -66,10 +95,17 @@ export default function ResultsPage() {
   }, [selectedDate, isRangeMode, from, to, filterLottery]);
 
   const filtered = results.filter((r) => {
-    if (filterLottery && r.lottery_name !== filterLottery) return false;
+    // If search is active, don't let a stale filterLottery hide matching search results
+    if (filterLottery && (!search.trim() || filterLottery.toLowerCase().includes(search.trim().toLowerCase()))) {
+      if (r.lottery_name !== filterLottery) return false;
+    }
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      const matchName = r.lottery_name?.toLowerCase().includes(q);
+      const lotteryDef = LOTTERIES.find((l) => l.name === r.lottery_name);
+      const matchName =
+        r.lottery_name?.toLowerCase().includes(q) ||
+        tLottery(r.lottery_name).toLowerCase().includes(q) ||
+        (lotteryDef?.nameSi || "").toLowerCase().includes(q);
       const matchDraw = r.draw_number?.toString().toLowerCase().includes(q);
       if (!matchName && !matchDraw) return false;
     }
@@ -159,13 +195,25 @@ export default function ResultsPage() {
               <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
                 Search Name
               </label>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by lottery name..."
-                className="input-dark text-sm w-full"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="Search by lottery name..."
+                  className="input-dark text-sm w-full pr-8"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => handleSearchChange("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs font-bold w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
             </div>
             <div className="flex-1 min-w-[180px]">
               <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
@@ -173,7 +221,7 @@ export default function ResultsPage() {
               </label>
               <select
                 value={filterLottery}
-                onChange={(e) => setFilterLottery(e.target.value)}
+                onChange={(e) => handleLotteryChange(e.target.value)}
                 className="input-dark text-sm w-full"
               >
                 <option value="">All Lotteries</option>
@@ -257,9 +305,24 @@ export default function ResultsPage() {
               No Results Found
             </h3>
             <p className="text-text-secondary font-body text-base leading-relaxed">
-              No official draws match your selected date or search filter.
+              {search.trim()
+                ? `No official draws match "${search}" with the current filters.`
+                : "No official draws match your selected date or search filter."}
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-3">
+              {search.trim() && (selectedDate || filterLottery) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedDate("");
+                    setIsRangeMode(false);
+                    setFilterLottery("");
+                  }}
+                  className="px-5 py-2.5 bg-gold text-white font-display font-bold text-sm rounded-xl shadow-sm hover:bg-gold-dark transition-all"
+                >
+                  🔍 View All Dates for "{search.trim()}"
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -268,7 +331,7 @@ export default function ResultsPage() {
                   setSearch("");
                   setFilterLottery("");
                 }}
-                className="px-5 py-2.5 bg-gold text-white font-display font-bold text-sm rounded-xl shadow-sm hover:bg-gold-dark transition-all"
+                className="px-5 py-2.5 bg-brand-section border border-border-default text-text-primary font-display font-bold text-sm rounded-xl shadow-sm hover:border-gold transition-all"
               >
                 View Today's Results (24 Sep)
               </button>
@@ -277,6 +340,8 @@ export default function ResultsPage() {
                 onClick={() => {
                   setSelectedDate("");
                   setIsRangeMode(false);
+                  setSearch("");
+                  setFilterLottery("");
                 }}
                 className="px-5 py-2.5 bg-white border border-border-default text-text-primary font-display font-bold text-sm rounded-xl shadow-sm hover:border-gold transition-all"
               >

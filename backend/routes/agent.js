@@ -3,6 +3,7 @@ const router = express.Router();
 const Claim = require('../models/Claim');
 const Employee = require('../models/Employee');
 const Order = require('../models/Order');
+const ScanSession = require('../models/ScanSession');
 
 // @route   GET /api/agent/reports/daily
 // @desc    Get aggregated daily winning summary report by date
@@ -418,6 +419,131 @@ router.delete('/employees/:id', async (req, res) => {
   } catch (error) {
     console.error('Delete employee error:', error);
     return res.status(500).json({ message: 'Server error deleting employee.', error: error.message });
+  }
+});
+
+// @route   GET /api/agent/employees/:id/profile
+// @desc    Get detailed employee profile with all scanned sessions, metrics, and claims
+// @access  Public (or Agent/Admin)
+router.get('/employees/:id/profile', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const agentId = req.query.agentId || 'default-agent';
+
+    const profile = await ScanSession.getEmployeeProfile(id, agentId);
+    return res.status(200).json({
+      success: true,
+      data: profile
+    });
+  } catch (error) {
+    console.error('Get employee profile error:', error);
+    return res.status(404).json({ message: error.message || 'Employee profile not found.' });
+  }
+});
+
+// @route   GET /api/agent/sessions
+// @desc    List scan sessions filtered by employee, date, or status
+// @access  Public (or Agent/Admin)
+router.get('/sessions', async (req, res) => {
+  try {
+    const { employeeId, date, status } = req.query;
+    const agentId = req.query.agentId || 'default-agent';
+
+    const sessions = await ScanSession.getSessions({ employeeId, date, agentId, status });
+    return res.status(200).json({
+      success: true,
+      count: sessions.length,
+      data: sessions
+    });
+  } catch (error) {
+    console.error('Get scan sessions error:', error);
+    return res.status(500).json({ message: 'Server error retrieving scan sessions.', error: error.message });
+  }
+});
+
+// @route   GET /api/agent/sessions/:id
+// @desc    Get single scan session details with complete ticket breakdown
+// @access  Public (or Agent/Admin)
+router.get('/sessions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await ScanSession.getById(id);
+    if (!session) {
+      return res.status(404).json({ message: `Session ${id} not found.` });
+    }
+    return res.status(200).json({
+      success: true,
+      data: session
+    });
+  } catch (error) {
+    console.error('Get session by ID error:', error);
+    return res.status(500).json({ message: 'Server error retrieving session.', error: error.message });
+  }
+});
+
+// @route   POST /api/agent/sessions
+// @desc    Save/complete a scan session and persist results to employee profile & claims
+// @access  Public (or Employee/Agent/Admin)
+router.post('/sessions', async (req, res) => {
+  try {
+    const {
+      agentId,
+      employeeId,
+      employeeName,
+      counterName,
+      startedAt,
+      endedAt,
+      status,
+      tickets,
+      returnShortageAmount,
+      notes,
+      recordClaims
+    } = req.body;
+
+    if (!employeeName || !employeeName.trim()) {
+      return res.status(400).json({ message: 'Employee name is required to save session.' });
+    }
+
+    const session = await ScanSession.createSession({
+      agentId: agentId || 'default-agent',
+      employeeId,
+      employeeName: employeeName.trim(),
+      counterName: counterName || 'Main Counter',
+      startedAt,
+      endedAt,
+      status: status || 'completed',
+      tickets: tickets || [],
+      returnShortageAmount: returnShortageAmount || 0,
+      notes: notes || '',
+      recordClaims: recordClaims !== false
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Scan session recorded successfully to employee profile.',
+      data: session
+    });
+  } catch (error) {
+    console.error('Create scan session error:', error);
+    return res.status(500).json({ message: error.message || 'Server error creating session.', error: error.message });
+  }
+});
+
+// @route   PUT /api/agent/sessions/:id
+// @desc    Update ongoing or completed scan session
+// @access  Public (or Employee/Agent/Admin)
+router.put('/sessions/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = await ScanSession.updateSession(id, req.body);
+    return res.status(200).json({
+      success: true,
+      message: 'Scan session updated successfully.',
+      data: updated
+    });
+  } catch (error) {
+    console.error('Update scan session error:', error);
+    return res.status(500).json({ message: error.message || 'Server error updating session.', error: error.message });
   }
 });
 

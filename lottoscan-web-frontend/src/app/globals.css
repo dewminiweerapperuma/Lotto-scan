@@ -223,8 +223,16 @@ body::before {
   }
 }
 
+.print-only {
+  display: none !important;
+}
+
 /* Print Styles */
 @media print {
+  .print-only {
+    display: block !important;
+  }
+
   /* Hide website shell elements and interactive controls */
   nav,
   footer,

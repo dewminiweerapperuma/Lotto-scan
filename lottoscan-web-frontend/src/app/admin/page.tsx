@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/hooks";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState("");
@@ -11,6 +13,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { user, login, isAdmin, isSuperAdmin, isAgent } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
 
   if (isAdmin || isAgent) {
@@ -57,15 +60,19 @@ export default function AdminLoginPage() {
         <div className="h-1.5 bg-gold w-full" />
 
         <div className="p-8 md:p-10 space-y-8">
+          <div className="flex justify-end">
+            <LanguageToggle variant="compact" />
+          </div>
+
           <div className="text-center space-y-3">
             <div className="w-16 h-16 rounded-full bg-gold-light border border-gold-border flex items-center justify-center text-3xl mx-auto shadow-sm">
               🔐
             </div>
             <h1 className="text-2xl font-display font-extrabold text-text-primary mt-4">
-              Admin Access
+              {t("login_admin_access")}
             </h1>
             <p className="text-text-secondary font-body text-sm">
-              Sign in to manage lottery results
+              {t("login_admin_subtitle")}
             </p>
           </div>
 
@@ -78,7 +85,7 @@ export default function AdminLoginPage() {
           <div className="space-y-4">
             <div>
               <label className="text-text-secondary text-xs font-body uppercase font-bold tracking-wider mb-2 block">
-                Email Address
+                {t("login_email_label")}
               </label>
               <input
                 type="email"
@@ -91,7 +98,7 @@ export default function AdminLoginPage() {
             </div>
             <div>
               <label className="text-text-secondary text-xs font-body uppercase font-bold tracking-wider mb-2 block">
-                Password
+                {t("login_password_label")}
               </label>
               <input
                 type="password"
@@ -106,7 +113,7 @@ export default function AdminLoginPage() {
 
           <div className="pt-2">
             <Button onClick={handleLogin} loading={loading} fullWidth size="lg">
-              Sign In
+              {t("login_signin_btn")}
             </Button>
           </div>
 

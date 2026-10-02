@@ -1606,15 +1606,6 @@ router.get('/statistics', async (req, res) => {
 });
 
 // @route   GET /api/lottery/all-draws
-const CANONICAL_DATES = [
-  '2026-09-24',
-  '2026-09-23',
-  '2026-09-22',
-  '2026-09-21',
-  '2026-09-20',
-  '2026-09-19'
-];
-
 async function getCanonicalDraws() {
   let livePrizes = [];
   try {
@@ -1637,6 +1628,12 @@ async function getCanonicalDraws() {
     const num = d.drawNumber;
     if (!name || !num || num === '9999') continue;
     if (!byLottery[name]) byLottery[name] = {};
+
+    const rawDate = d.drawDate;
+    const dbDateStr = rawDate
+      ? (typeof rawDate === 'string' ? rawDate.slice(0, 10) : new Date(rawDate).toISOString().slice(0, 10))
+      : null;
+
     if (!byLottery[name][num]) {
       const first = d.prizeDistribution?.first || {};
       const nums = first.numbers || [];
@@ -1645,6 +1642,7 @@ async function getCanonicalDraws() {
         lottery_name: name,
         board: (['Govisetha', 'Mahajana Sampatha', 'Mega Power', 'Dhana Nidhanaya', 'Handahana', 'NLB Jaya', 'Ada Sampatha', 'Suba Dawasak'].includes(name) ? 'NLB' : 'DLB'),
         draw_number: num,
+        draw_date: dbDateStr,
         number_1: nums[0] ?? 0,
         number_2: nums[1] ?? 0,
         number_3: nums[2] ?? 0,
@@ -1655,6 +1653,8 @@ async function getCanonicalDraws() {
         top_prize: first.prize || '',
         uploaded_by: d.uploadedBy || 'automated_scraper'
       };
+    } else if (!byLottery[name][num].draw_date && dbDateStr) {
+      byLottery[name][num].draw_date = dbDateStr;
     }
   }
 
@@ -1662,32 +1662,58 @@ async function getCanonicalDraws() {
   for (const p of livePrizes) {
     if (!p.name || !p.drawNumber) continue;
     if (!byLottery[p.name]) byLottery[p.name] = {};
-    byLottery[p.name][p.drawNumber] = {
-      id: `live-${p.name}-${p.drawNumber}`,
-      lottery_name: p.name,
-      board: p.board || (['Govisetha', 'Mahajana Sampatha', 'Mega Power', 'Dhana Nidhanaya', 'Handahana', 'NLB Jaya', 'Ada Sampatha', 'Suba Dawasak'].includes(p.name) ? 'NLB' : 'DLB'),
-      draw_number: p.drawNumber,
-      number_1: p.winningNumbers?.[0] ?? 0,
-      number_2: p.winningNumbers?.[1] ?? 0,
-      number_3: p.winningNumbers?.[2] ?? 0,
-      number_4: p.winningNumbers?.[3] ?? 0,
-      number_5: p.winningNumbers?.[4] ?? 0,
-      winningNumbers: p.winningNumbers || [],
-      letter: p.letter || '',
-      top_prize: p.topPrize || '',
-      uploaded_by: 'auto-scraper'
-    };
+    const dateStr = p.drawDate || (p.updatedAt ? new Date(p.updatedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+
+    if (!byLottery[p.name][p.drawNumber]) {
+      byLottery[p.name][p.drawNumber] = {
+        id: `live-${p.name}-${p.drawNumber}`,
+        lottery_name: p.name,
+        board: p.board || (['Govisetha', 'Mahajana Sampatha', 'Mega Power', 'Dhana Nidhanaya', 'Handahana', 'NLB Jaya', 'Ada Sampatha', 'Suba Dawasak'].includes(p.name) ? 'NLB' : 'DLB'),
+        draw_number: p.drawNumber,
+        draw_date: dateStr,
+        number_1: p.winningNumbers?.[0] ?? 0,
+        number_2: p.winningNumbers?.[1] ?? 0,
+        number_3: p.winningNumbers?.[2] ?? 0,
+        number_4: p.winningNumbers?.[3] ?? 0,
+        number_5: p.winningNumbers?.[4] ?? 0,
+        winningNumbers: p.winningNumbers || [],
+        letter: p.letter || '',
+        top_prize: p.topPrize || '',
+        uploaded_by: 'auto-scraper'
+      };
+    } else {
+      if (!byLottery[p.name][p.drawNumber].top_prize && p.topPrize) {
+        byLottery[p.name][p.drawNumber].top_prize = p.topPrize;
+      }
+      if (!byLottery[p.name][p.drawNumber].draw_date && dateStr) {
+        byLottery[p.name][p.drawNumber].draw_date = dateStr;
+      }
+    }
   }
 
-  // Assign canonical chronological dates per draw number
+  // Assign and deduplicate dates per lottery game (strictly at most ONE draw per date per lottery)
   const allDraws = [];
   for (const lotName in byLottery) {
     const lotDraws = byLottery[lotName];
     const sortedNums = Object.keys(lotDraws).sort((a, b) => Number(b) - Number(a));
-    sortedNums.forEach((num, idx) => {
-      const assignedDate = CANONICAL_DATES[idx] || new Date(Date.now() - idx * 86400000).toISOString().slice(0, 10);
+    const usedDates = new Set();
+
+    sortedNums.forEach((num) => {
+      const item = lotDraws[num];
+      let assignedDate = item.draw_date;
+
+      // If missing or if this date has already been claimed by a newer draw of the same lottery
+      if (!assignedDate || usedDates.has(assignedDate)) {
+        let cursor = assignedDate ? new Date(assignedDate) : new Date();
+        while (!assignedDate || usedDates.has(assignedDate)) {
+          cursor.setDate(cursor.getDate() - 1);
+          assignedDate = cursor.toISOString().slice(0, 10);
+        }
+      }
+
+      usedDates.add(assignedDate);
       allDraws.push({
-        ...lotDraws[num],
+        ...item,
         draw_date: assignedDate
       });
     });
