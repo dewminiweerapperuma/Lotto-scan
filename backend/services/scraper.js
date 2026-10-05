@@ -102,6 +102,23 @@ const scrapeNLB = async () => {
     const prizeMap = new Map();
     const $ = cheerio.load(homeHtml);
 
+    // Extract official published draw date from NLB homepage (e.g. "Saturday October 03, 2026")
+    let nlbDrawDate = '';
+    $('h2, h3, .latest h2, .latest-results h2, .date').each((_, el) => {
+      if (nlbDrawDate) return;
+      const text = $(el).text().trim();
+      const dMatch = text.match(/(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)?\s*([A-Za-z]+)\s+(\d{1,2}),?\s*(\d{4})/i);
+      if (dMatch) {
+        const monthName = dMatch[1];
+        const day = dMatch[2].padStart(2, '0');
+        const year = dMatch[3];
+        const monthNum = new Date(`${monthName} 1, 2000`).getMonth() + 1;
+        if (!isNaN(monthNum)) {
+          nlbDrawDate = `${year}-${String(monthNum).padStart(2, '0')}-${day}`;
+        }
+      }
+    });
+
     $('.latest table.tbl tr').each((_, tr) => {
       const tdFirst = $(tr).find('td').first();
       const rawName = tdFirst.find('strong').text().trim();
@@ -217,6 +234,7 @@ const scrapeNLB = async () => {
         name: item.name,
         board: 'NLB',
         drawNumber,
+        drawDate: nlbDrawDate || '',
         topPrize: topPrize || '—',
         letter,
         winningNumbers,
@@ -314,10 +332,25 @@ const scrapeDLB = async () => {
           continue;
         }
 
-        // Draw number
+        // Draw number & Draw Date
         const dateText = container.find('.lot_m_re_date').text() || '';
         const drawMatch = dateText.match(/Draw\s*Number\s*[-–]?\s*(\d+)/i);
         const drawNumber = drawMatch ? drawMatch[1] : '';
+
+        let dlbDrawDate = '';
+        const ymdMatch = dateText.match(/(\d{4})[-/]([A-Za-z]+|\d{1,2})[-/](\d{1,2})/);
+        if (ymdMatch) {
+          const year = ymdMatch[1];
+          let month = ymdMatch[2];
+          const day = ymdMatch[3].padStart(2, '0');
+          if (isNaN(month)) {
+            const mNum = new Date(`${month} 1, 2000`).getMonth() + 1;
+            month = String(mNum).padStart(2, '0');
+          } else {
+            month = month.padStart(2, '0');
+          }
+          dlbDrawDate = `${year}-${month}-${day}`;
+        }
 
         // English letter
         let letter = '';
@@ -359,6 +392,7 @@ const scrapeDLB = async () => {
             name: lottery.name,
             board: 'DLB',
             drawNumber,
+            drawDate: dlbDrawDate || '',
             letter,
             winningNumbers,
             topPrize: '',
@@ -469,6 +503,7 @@ const scrapeLivePrizes = async () => {
       resultMap.set(fresh.name, {
         ...existing,
         drawNumber: hasFreshDraw ? fresh.drawNumber : existing.drawNumber,
+        drawDate: fresh.drawDate || existing.drawDate || '',
         letter: (fresh.letter && fresh.letter !== '?') ? fresh.letter : (existing.letter || fresh.letter || ''),
         winningNumbers: hasFreshNums ? fresh.winningNumbers : existing.winningNumbers,
         topPrize: (fresh.topPrize && fresh.topPrize !== '—') ? fresh.topPrize : existing.topPrize,
@@ -517,7 +552,7 @@ const scrapeLivePrizes = async () => {
         await db.query(
           `INSERT INTO draws (id, draw_date, draw_name, draw_number, prize_distribution, uploaded_at, uploaded_by, status)
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-          [drawId, now, item.name, item.drawNumber, JSON.stringify(prizeDist), now, 'automated_scraper', 'active']
+          [drawId, item.drawDate || now, item.name, item.drawNumber, JSON.stringify(prizeDist), now, 'automated_scraper', 'active']
         );
       }
     }

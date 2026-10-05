@@ -2,130 +2,138 @@
   {
     "name": "Govisetha",
     "board": "NLB",
-    "drawNumber": "4569",
-    "topPrize": "Rs. 86,293,145.56",
-    "letter": "M",
+    "drawNumber": "4572",
+    "topPrize": "Rs. 86,771,256.76",
+    "letter": "W",
     "winningNumbers": [
-      15,
+      14,
+      36,
       41,
-      73,
       77
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Mahajana Sampatha",
     "board": "NLB",
-    "drawNumber": "6327",
-    "topPrize": "Rs. 29,676,344.00",
-    "letter": "C",
+    "drawNumber": "6330",
+    "topPrize": "Rs. 30,561,160.00",
+    "letter": "N",
     "winningNumbers": [
+      3,
+      8,
       4,
-      0,
       3,
       3,
-      7,
-      9
+      2
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Mega Power",
     "board": "NLB",
-    "drawNumber": "2675",
+    "drawNumber": "2678",
     "topPrize": "Rs. 308,272,110.00",
-    "letter": "H",
+    "letter": "P",
     "winningNumbers": [
+      12,
       13,
-      57,
-      61,
-      76,
-      78
+      30,
+      59,
+      69
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Dhana Nidhanaya",
     "board": "NLB",
-    "drawNumber": "2357",
-    "topPrize": "Rs. 87,887,018.40",
-    "letter": "O",
+    "drawNumber": "2360",
+    "topPrize": "Rs. 88,618,384.80",
+    "letter": "Z",
     "winningNumbers": [
-      1,
-      5,
-      48,
-      70
+      42,
+      52,
+      76,
+      79
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Handahana",
     "board": "NLB",
-    "drawNumber": "1636",
-    "topPrize": "Rs. 3,158,210.80",
-    "letter": "GEMINI",
+    "drawNumber": "1639",
+    "topPrize": "Rs. 3,395,707.20",
+    "letter": "CANCER",
     "winningNumbers": [
-      9,
-      42,
-      51,
-      57
+      19,
+      25,
+      39,
+      51
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Ada Sampatha",
     "board": "NLB",
-    "drawNumber": "0902",
+    "drawNumber": "0905",
     "topPrize": "Rs. 2,500,000",
-    "letter": "C",
+    "letter": "N",
     "winningNumbers": [
+      4,
       3,
       3,
-      7,
-      9
+      2
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "NLB Jaya",
     "board": "NLB",
-    "drawNumber": "0595",
+    "drawNumber": "0598",
     "topPrize": "Rs. 500,000",
-    "letter": "R",
+    "letter": "C",
     "winningNumbers": [
-      7,
+      5,
+      2,
       4,
-      1,
-      6
+      0
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Suba Dawasak",
     "board": "NLB",
-    "drawNumber": "0443",
+    "drawNumber": "0446",
     "topPrize": "Gold Coins",
-    "letter": "CAPRICORN",
+    "letter": "PISCES",
     "winningNumbers": [
-      40,
-      46,
-      50
+      12,
+      15,
+      58
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z"
+    "updatedAt": "2026-10-05T06:46:20.756Z",
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Ada Kotipathi",
     "board": "DLB",
-    "drawNumber": "3127",
-    "topPrize": "Rs. 85,068,314",
-    "letter": "Y",
+    "drawNumber": "3130",
+    "topPrize": "Rs. 86,184,350",
+    "letter": "D",
     "winningNumbers": [
+      11,
       13,
-      16,
-      18,
-      43
+      20,
+      35
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any Single Number",
@@ -172,21 +180,22 @@
         "prize": "Rs.50,000,000.00",
         "prizeAmount": 50000000
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Shanida Wasanawa",
     "board": "DLB",
-    "drawNumber": "5462",
-    "topPrize": "Rs. 54,506,050",
-    "letter": "J",
+    "drawNumber": "5465",
+    "topPrize": "Rs. 54,988,371",
+    "letter": "O",
     "winningNumbers": [
-      10,
-      42,
-      68,
-      76
+      2,
+      14,
+      22,
+      28
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any English Letter",
@@ -233,21 +242,22 @@
         "prize": "Rs.50,000,000.00",
         "prizeAmount": 50000000
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Lagna Wasanawa",
     "board": "DLB",
-    "drawNumber": "5013",
-    "topPrize": "Rs. 4,909,324",
-    "letter": "♓",
+    "drawNumber": "5016",
+    "topPrize": "Rs. 3,000,000",
+    "letter": "♈",
     "winningNumbers": [
-      22,
-      42,
-      49,
-      59
+      4,
+      15,
+      29,
+      47
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any Single Number",
@@ -294,23 +304,24 @@
         "prize": "Rs.3,000,000.00",
         "prizeAmount": 3000000
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Supiri Dhana Sampatha",
     "board": "DLB",
-    "drawNumber": "1035",
-    "topPrize": "Rs. 31,627,330",
-    "letter": "K",
+    "drawNumber": "1038",
+    "topPrize": "Rs. 31,888,711",
+    "letter": "G",
     "winningNumbers": [
-      8,
-      5,
-      0,
       6,
-      0,
-      8
+      9,
+      3,
+      2,
+      7,
+      9
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "All 6 Numbers + Letter",
@@ -382,21 +393,22 @@
         "prize": "Rs.500.00",
         "prizeAmount": 500
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Super Ball",
     "board": "DLB",
-    "drawNumber": "3301",
-    "topPrize": "Rs. 82,135,218",
-    "letter": "M",
+    "drawNumber": "3304",
+    "topPrize": "Rs. 83,001,740",
+    "letter": "W",
     "winningNumbers": [
-      48,
-      71,
-      74,
-      76
+      10,
+      12,
+      15,
+      77
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any English Letter",
@@ -443,22 +455,23 @@
         "prize": "Rs.50,000,000.00",
         "prizeAmount": 50000000
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Kapruka",
     "board": "DLB",
-    "drawNumber": "2477",
-    "topPrize": "Rs. 377,092,951",
-    "letter": "S",
+    "drawNumber": "2480",
+    "topPrize": "Rs. 379,409,580",
+    "letter": "Z",
     "winningNumbers": [
-      32,
-      35,
-      64,
-      65,
-      27
+      12,
+      21,
+      55,
+      60,
+      40
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any Single Number",
@@ -520,20 +533,21 @@
         "prize": "Rs.40.00",
         "prizeAmount": 40
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Sasiri",
     "board": "DLB",
-    "drawNumber": "1131",
+    "drawNumber": "1134",
     "topPrize": "Rs. 200,000",
     "letter": "",
     "winningNumbers": [
-      7,
-      21,
-      42
+      15,
+      28,
+      31
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "Any Single Number",
@@ -550,21 +564,22 @@
         "prize": "Rs.200,000.00",
         "prizeAmount": 200000
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   },
   {
     "name": "Jaya Sampatha",
     "board": "DLB",
-    "drawNumber": "509",
+    "drawNumber": "512",
     "topPrize": "Rs. 250,000",
-    "letter": "K",
+    "letter": "G",
     "winningNumbers": [
-      0,
-      6,
-      0,
-      8
+      3,
+      2,
+      7,
+      9
     ],
-    "updatedAt": "2026-10-02T03:54:47.973Z",
+    "updatedAt": "2026-10-05T06:46:20.756Z",
     "prizeStructure": [
       {
         "combination": "All 04 numbers from back to forward with English Letter",
@@ -591,6 +606,7 @@
         "prize": "Rs.80.00",
         "prizeAmount": 80
       }
-    ]
+    ],
+    "drawDate": "2026-10-04"
   }
 ]

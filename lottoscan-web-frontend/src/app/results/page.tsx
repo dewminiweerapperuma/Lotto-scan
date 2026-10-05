@@ -11,73 +11,63 @@ import { LOTTERIES, LOTTERY_EMOJIS } from "@/lib/constants";
 import PyramidResults, { isPyramidLottery } from "@/components/ui/PyramidResults";
 import { useLanguage } from "@/context/LanguageContext";
 
-const QUICK_DATES = [
-  { label: "Today (24 Sep)", value: "2026-09-24" },
-  { label: "Yesterday (23 Sep)", value: "2026-09-23" },
-  { label: "22 Sep", value: "2026-09-22" },
-  { label: "21 Sep", value: "2026-09-21" },
-  { label: "20 Sep", value: "2026-09-20" },
-  { label: "19 Sep", value: "2026-09-19" },
-  { label: "All Recent Draws", value: "" },
-];
+function formatYMD(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getQuickDates(baseDate = new Date()) {
+  const dates = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() - i);
+    const value = formatYMD(d);
+    const dayMonth = d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+    let label = dayMonth;
+    if (i === 0) label = `Today (${dayMonth})`;
+    else if (i === 1) label = `Yesterday (${dayMonth})`;
+    dates.push({ label, value });
+  }
+  return dates;
+}
 
 export default function ResultsPage() {
   const { t, tLottery } = useLanguage();
+  const [quickDates, setQuickDates] = useState<{ label: string; value: string }[]>(() => getQuickDates());
+  // Default to yesterday's draw date since today's evening draw takes place around 9:00-10:00 PM
+  const [selectedDate, setSelectedDate] = useState<string>(() => getQuickDates()[1].value);
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState("2026-09-24");
-  const [isRangeMode, setIsRangeMode] = useState(false);
-  const [from, setFrom] = useState("2026-09-19");
-  const [to, setTo] = useState("2026-09-24");
-  const [search, setSearch] = useState("");
   const [filterLottery, setFilterLottery] = useState("");
 
-  const handleSearchChange = (value: string) => {
-    setSearch(value);
-    // If user is searching and filterLottery contradicts the search, clear filterLottery
-    if (filterLottery && value.trim()) {
-      const q = value.trim().toLowerCase();
-      if (!filterLottery.toLowerCase().includes(q)) {
-        setFilterLottery("");
-      }
-    }
-  };
+  // Probe available draws on mount to automatically select the latest available published draw date
+  useEffect(() => {
+    const dynamicDates = getQuickDates();
+    setQuickDates(dynamicDates);
 
-  const handleLotteryChange = (value: string) => {
-    setFilterLottery(value);
-    // If there was an active search term that doesn't match the new lottery selection, clear it
-    if (value && search.trim()) {
-      const q = search.trim().toLowerCase();
-      if (!value.toLowerCase().includes(q) && isNaN(Number(q))) {
-        setSearch("");
+    lotteryApi.getAllDraws().then((r) => {
+      const all = Array.isArray(r.data?.draws) ? r.data.draws : [];
+      const hasToday = all.some((d: any) => d.draw_date === dynamicDates[0].value);
+      if (hasToday) {
+        setSelectedDate(dynamicDates[0].value);
+      } else {
+        const latestAvailable = all[0]?.draw_date || dynamicDates[1].value;
+        setSelectedDate(latestAvailable);
       }
-    }
-  };
+    }).catch(() => {
+      setSelectedDate(dynamicDates[1].value);
+    });
+  }, []);
 
   useEffect(() => {
     setLoading(true);
-    // If search is active and doesn't match filterLottery, do not restrict the backend query to filterLottery
-    let lotteryParam = filterLottery?.trim() || undefined;
-    if (lotteryParam && search.trim()) {
-      const q = search.trim().toLowerCase();
-      if (!lotteryParam.toLowerCase().includes(q)) {
-        lotteryParam = undefined;
-      }
-    }
+    const lotteryParam = filterLottery?.trim() || undefined;
 
-    let request;
-    if (!isRangeMode && selectedDate) {
-      // Query specific single date
-      request = lotteryApi.getAllDraws(undefined, undefined, lotteryParam, selectedDate);
-    } else if (isRangeMode) {
-      // Query date range
-      const fromParam = from?.trim() || undefined;
-      const toParam = to?.trim() || undefined;
-      request = lotteryApi.getAllDraws(fromParam, toParam, lotteryParam);
-    } else {
-      // Query all recent draws
-      request = lotteryApi.getAllDraws(undefined, undefined, lotteryParam);
-    }
+    const request = selectedDate
+      ? lotteryApi.getAllDraws(undefined, undefined, lotteryParam, selectedDate)
+      : lotteryApi.getAllDraws(undefined, undefined, lotteryParam);
 
     request
       .then((r) => {
@@ -92,23 +82,10 @@ export default function ResultsPage() {
       })
       .catch(() => setResults([]))
       .finally(() => setLoading(false));
-  }, [selectedDate, isRangeMode, from, to, filterLottery]);
+  }, [selectedDate, filterLottery]);
 
   const filtered = results.filter((r) => {
-    // If search is active, don't let a stale filterLottery hide matching search results
-    if (filterLottery && (!search.trim() || filterLottery.toLowerCase().includes(search.trim().toLowerCase()))) {
-      if (r.lottery_name !== filterLottery) return false;
-    }
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const lotteryDef = LOTTERIES.find((l) => l.name === r.lottery_name);
-      const matchName =
-        r.lottery_name?.toLowerCase().includes(q) ||
-        tLottery(r.lottery_name).toLowerCase().includes(q) ||
-        (lotteryDef?.nameSi || "").toLowerCase().includes(q);
-      const matchDraw = r.draw_number?.toString().toLowerCase().includes(q);
-      if (!matchName && !matchDraw) return false;
-    }
+    if (filterLottery && r.lottery_name !== filterLottery) return false;
     return true;
   });
 
@@ -156,72 +133,48 @@ export default function ResultsPage() {
             <span className="text-xs font-bold text-text-muted uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
               <span>📅</span> Date:
             </span>
-            {QUICK_DATES.map((d, idx) => {
-              const isActive = !isRangeMode && selectedDate === d.value;
+            {quickDates.map((d, idx) => {
+              const isActive = selectedDate === d.value;
+              const isToday = idx === 0;
+              const isYesterday = idx === 1;
               return (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => {
-                    setSelectedDate(d.value);
-                    setIsRangeMode(false);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl font-display font-bold text-xs whitespace-nowrap transition-all ${
+                  onClick={() => setSelectedDate(d.value)}
+                  className={`px-3 py-1.5 rounded-xl font-display font-bold text-xs whitespace-nowrap transition-all flex items-center gap-1.5 ${
                     isActive
                       ? "bg-gold text-white shadow-sm shadow-gold/30 scale-105"
                       : "bg-brand-section text-text-secondary hover:text-text-primary hover:bg-gold-light/40 border border-border-default/60"
                   }`}
                 >
-                  {d.label}
+                  <span>{d.label}</span>
+                  {isToday && (
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-semibold ${
+                      isActive ? "bg-white/20 text-white" : "bg-amber-100 text-amber-800"
+                    }`}>
+                      Night Draw
+                    </span>
+                  )}
+                  {isYesterday && !isActive && (
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full font-semibold bg-emerald-100 text-emerald-800">
+                      Latest
+                    </span>
+                  )}
                 </button>
               );
             })}
-            <button
-              type="button"
-              onClick={() => setIsRangeMode(!isRangeMode)}
-              className={`px-3 py-1.5 rounded-xl font-display font-bold text-xs whitespace-nowrap transition-all border ${
-                isRangeMode
-                  ? "bg-gold text-white border-gold shadow-sm"
-                  : "bg-white text-text-secondary hover:text-text-primary border-border-default"
-              }`}
-            >
-              📆 {isRangeMode ? "Range Active" : "Custom Range"}
-            </button>
           </div>
 
-          {/* Search and Dropdowns Row */}
+          {/* Filters Row */}
           <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                Search Name
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="Search by lottery name..."
-                  className="input-dark text-sm w-full pr-8"
-                />
-                {search && (
-                  <button
-                    type="button"
-                    onClick={() => handleSearchChange("")}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary text-xs font-bold w-5 h-5 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
-                    title="Clear search"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            </div>
-            <div className="flex-1 min-w-[180px]">
+            <div className="flex-1 min-w-[220px] max-w-sm">
               <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
                 Lottery Type
               </label>
               <select
                 value={filterLottery}
-                onChange={(e) => handleLotteryChange(e.target.value)}
+                onChange={(e) => setFilterLottery(e.target.value)}
                 className="input-dark text-sm w-full"
               >
                 <option value="">All Lotteries</option>
@@ -233,59 +186,32 @@ export default function ResultsPage() {
               </select>
             </div>
 
-            {/* Single Date or Date Range Input */}
-            {!isRangeMode ? (
-              <div className="w-full sm:w-auto">
-                <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                  Draw Date
-                </label>
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="input-dark text-sm w-full"
-                />
-              </div>
-            ) : (
-              <>
-                <div className="w-full sm:w-auto">
-                  <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                    From Date
-                  </label>
-                  <input
-                    type="date"
-                    value={from}
-                    onChange={(e) => setFrom(e.target.value)}
-                    className="input-dark text-sm w-full"
-                  />
-                </div>
-                <div className="w-full sm:w-auto">
-                  <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
-                    To Date
-                  </label>
-                  <input
-                    type="date"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                    className="input-dark text-sm w-full"
-                  />
-                </div>
-              </>
-            )}
+            {/* Single Draw Date Input */}
+            <div className="w-full sm:w-auto">
+              <label className="text-text-secondary text-xs font-body font-bold uppercase tracking-wider mb-2 block">
+                Draw Date
+              </label>
+              <input
+                type="date"
+                value={selectedDate}
+                max={quickDates[0]?.value}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="input-dark text-sm w-full"
+              />
+            </div>
 
-            <button
-              onClick={() => {
-                setSearch("");
-                setFilterLottery("");
-                setSelectedDate("2026-09-24");
-                setIsRangeMode(false);
-                setFrom("2026-09-19");
-                setTo("2026-09-24");
-              }}
-              className="text-gold-dark hover:text-gold hover:underline text-sm font-body font-bold transition-colors px-4 py-3 shrink-0"
-            >
-              Clear Filters
-            </button>
+            {(filterLottery || (quickDates[1] && selectedDate !== quickDates[1].value)) && (
+              <button
+                onClick={() => {
+                  const latestAvailableStr = quickDates[1]?.value || formatYMD(new Date());
+                  setFilterLottery("");
+                  setSelectedDate(latestAvailableStr);
+                }}
+                className="text-gold-dark hover:text-gold hover:underline text-sm font-body font-bold transition-colors px-4 py-3 shrink-0"
+              >
+                Clear Filters
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -299,58 +225,100 @@ export default function ResultsPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border-2 border-dashed border-border-default rounded-[24px] text-center p-16 max-w-xl mx-auto mt-8 shadow-sm">
-            <div className="text-6xl mb-4 select-none">📭</div>
-            <h3 className="text-text-primary font-display font-extrabold text-2xl mb-2">
-              No Results Found
-            </h3>
-            <p className="text-text-secondary font-body text-base leading-relaxed">
-              {search.trim()
-                ? `No official draws match "${search}" with the current filters.`
-                : "No official draws match your selected date or search filter."}
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-3">
-              {search.trim() && (selectedDate || filterLottery) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedDate("");
-                    setIsRangeMode(false);
-                    setFilterLottery("");
-                  }}
-                  className="px-5 py-2.5 bg-gold text-white font-display font-bold text-sm rounded-xl shadow-sm hover:bg-gold-dark transition-all"
-                >
-                  🔍 View All Dates for "{search.trim()}"
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedDate("2026-09-24");
-                  setIsRangeMode(false);
-                  setSearch("");
-                  setFilterLottery("");
-                }}
-                className="px-5 py-2.5 bg-brand-section border border-border-default text-text-primary font-display font-bold text-sm rounded-xl shadow-sm hover:border-gold transition-all"
-              >
-                View Today's Results (24 Sep)
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedDate("");
-                  setIsRangeMode(false);
-                  setSearch("");
-                  setFilterLottery("");
-                }}
-                className="px-5 py-2.5 bg-white border border-border-default text-text-primary font-display font-bold text-sm rounded-xl shadow-sm hover:border-gold transition-all"
-              >
-                View All Recent Draws
-              </button>
-            </div>
-          </div>
+          (() => {
+            const isTodaySelected = selectedDate === quickDates[0]?.value;
+            const yesterdayDate = quickDates[1]?.value;
+
+            if (isTodaySelected) {
+              return (
+                <div className="bg-amber-50/90 border border-amber-200 rounded-[24px] text-center p-12 max-w-xl mx-auto mt-8 shadow-sm">
+                  <div className="text-5xl mb-4 select-none">⏰</div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold font-display uppercase tracking-wider mb-3">
+                    <span>Draws Scheduled for 9:00 PM – 10:00 PM</span>
+                  </div>
+                  <h3 className="text-amber-950 font-display font-extrabold text-2xl mb-2">
+                    Today&apos;s Draws ({quickDates[0]?.label.replace("Today (", "").replace(")", "")}) Not Published Yet
+                  </h3>
+                  <p className="text-amber-800 font-body text-sm leading-relaxed mb-6 max-w-md mx-auto">
+                    Official Sri Lankan lottery drawings (NLB &amp; DLB) take place every evening between <strong>9:00 PM – 10:00 PM</strong>. Today&apos;s winning results will be published here automatically right after the live draw broadcast concludes.
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDate(yesterdayDate)}
+                      className="px-6 py-3 bg-gold text-white font-display font-bold text-sm rounded-xl shadow-md hover:bg-gold-dark transition-all transform hover:-translate-y-0.5"
+                    >
+                      👉 View Latest Official Results ({quickDates[1]?.label})
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div className="bg-white border-2 border-dashed border-border-default rounded-[24px] text-center p-16 max-w-xl mx-auto mt-8 shadow-sm">
+                <div className="text-6xl mb-4 select-none">📭</div>
+                <h3 className="text-text-primary font-display font-extrabold text-2xl mb-2">
+                  No Results Found
+                </h3>
+                <p className="text-text-secondary font-body text-base leading-relaxed">
+                  {filterLottery
+                    ? `No official draws found for ${filterLottery} on this date.`
+                    : "No official draws match your selected date or lottery filter."}
+                </p>
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDate(yesterdayDate)}
+                    className="px-5 py-2.5 bg-brand-section border border-border-default text-text-primary font-display font-bold text-sm rounded-xl shadow-sm hover:border-gold transition-all"
+                  >
+                    View Latest Results ({quickDates[1]?.label})
+                  </button>
+                </div>
+              </div>
+            );
+          })()
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <>
+            {/* Status Banner when viewing latest published draws */}
+            {selectedDate === quickDates[1]?.value && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-amber-50/70 border border-amber-200/80 rounded-2xl px-5 py-3 text-xs md:text-sm text-amber-900 font-body">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">ℹ️</span>
+                  <span>
+                    Showing <strong>latest official published results</strong> ({quickDates[1]?.label}). Today&apos;s ({quickDates[0]?.label.replace("Today (", "").replace(")", "")}) draws take place tonight around <strong>9:00 PM – 10:00 PM</strong>.
+                  </span>
+                </div>
+                <span className="px-2.5 py-1 bg-amber-100/80 text-amber-800 rounded-lg text-xs font-bold font-display uppercase tracking-wider">
+                  Official Draw Date: {selectedDate}
+                </span>
+              </div>
+            )}
+
+            {/* Status Banner when viewing historical calendar date */}
+            {selectedDate && selectedDate !== quickDates[0]?.value && selectedDate !== quickDates[1]?.value && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-blue-50/80 border border-blue-200 rounded-2xl px-5 py-3 text-xs md:text-sm text-blue-900 font-body">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📅</span>
+                  <span>
+                    Showing official draws for <strong>{new Date(`${selectedDate}T00:00:00Z`).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</strong> ({filtered.length} lotteries found)
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-bold font-display uppercase tracking-wider">
+                    {selectedDate}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedDate(quickDates[1]?.value || "")}
+                    className="text-xs text-blue-700 hover:text-blue-900 font-bold underline ml-2"
+                  >
+                    Back to Latest Results
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((result, i) => {
               const matchedDef = LOTTERIES.find((l) => l.name === result.lottery_name);
               const expectedCount = matchedDef?.winningNumbers?.length || 4;
@@ -445,7 +413,8 @@ export default function ResultsPage() {
               );
             })}
           </div>
-        )}
+        </>
+      )}
       </section>
     </div>
   );
