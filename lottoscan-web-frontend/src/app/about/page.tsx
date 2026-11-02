@@ -17,7 +17,7 @@ export default function AboutPage() {
 
         {/* Content Cards */}
         <div className="space-y-6">
-          <Card className="bg-white border border-border-default shadow-sm p-6">
+          <Card className="bg-white dark:bg-slate-900 border border-border-default shadow-sm p-6">
             <h2 className="text-lg md:text-xl font-display font-extrabold text-text-primary mb-3">
               What is LottoScan?
             </h2>
@@ -26,7 +26,7 @@ export default function AboutPage() {
             </p>
           </Card>
 
-          <Card className="bg-white border border-border-default shadow-sm p-6">
+          <Card className="bg-white dark:bg-slate-900 border border-border-default shadow-sm p-6">
             <h2 className="text-lg md:text-xl font-display font-extrabold text-text-primary mb-4 border-b border-border-default/50 pb-2">
               Automated Verification Cycle
             </h2>
@@ -52,7 +52,7 @@ export default function AboutPage() {
             </div>
           </Card>
 
-          <Card className="bg-white border border-border-default shadow-sm p-6">
+          <Card className="bg-white dark:bg-slate-900 border border-border-default shadow-sm p-6">
             <h2 className="text-lg md:text-xl font-display font-extrabold text-text-primary mb-4">
               Supported Lottery Boards
             </h2>
@@ -89,7 +89,7 @@ export default function AboutPage() {
             </div>
           </Card>
 
-          <Card className="bg-white border border-border-default shadow-sm p-6">
+          <Card className="bg-white dark:bg-slate-900 border border-border-default shadow-sm p-6">
             <h2 className="text-lg md:text-xl font-display font-extrabold text-text-primary mb-3">
               Privacy Policy
             </h2>

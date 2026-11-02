@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/hooks";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageToggle from "@/components/ui/LanguageToggle";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 import {
   ChevronDown,
   Building2,
@@ -24,6 +25,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const { user, isAdmin, isAgent, isSuperAdmin, logout } = useAuth();
   const { t } = useLanguage();
+  const isAgentRoute = pathname?.startsWith("/agent") || isAgent;
 
   // Dropdown states
   const [resultsOpen, setResultsOpen] = useState(false);
@@ -48,7 +50,7 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-100 h-20 transition-all print:hidden no-print">
+    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-slate-950/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800/80 h-20 transition-all print:hidden no-print">
       <div className="max-w-7xl mx-auto px-6 lg:px-12 h-full">
         <div className="flex items-center justify-between h-full">
 
@@ -58,7 +60,7 @@ export default function Navbar() {
               <QrCode className="w-5 h-5" />
             </div>
             <div className="flex items-baseline">
-              <span className="font-display font-black text-2xl tracking-tight text-slate-900">
+              <span className="font-display font-black text-2xl tracking-tight text-slate-900 dark:text-white">
                 Lotto
               </span>
               <span className="font-display font-black text-2xl tracking-tight text-amber-500">
@@ -74,8 +76,8 @@ export default function Navbar() {
               href="/"
               className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
                 pathname === "/"
-                  ? "text-amber-600 font-bold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("nav_home")}</span>
@@ -87,20 +89,20 @@ export default function Navbar() {
                 onClick={() => setResultsOpen(!resultsOpen)}
                 className={`text-sm font-semibold transition-colors flex items-center gap-1.5 py-2 ${
                   pathname.startsWith("/results")
-                    ? "text-amber-600 font-bold"
-                    : "text-slate-600 hover:text-slate-900"
+                    ? "text-amber-600 dark:text-amber-400 font-bold"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
                 }`}
               >
                 <span>{t("nav_results")}</span>
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform text-slate-400 ${resultsOpen ? "rotate-180 text-amber-600" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform text-slate-400 dark:text-slate-500 ${resultsOpen ? "rotate-180 text-amber-600 dark:text-amber-400" : ""}`} />
               </button>
 
               {resultsOpen && (
-                <div className="absolute left-0 mt-2 w-56 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 space-y-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-2xl p-2 space-y-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <Link
                     href="/results"
                     onClick={() => setResultsOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                   >
                     <Trophy className="w-4 h-4 text-amber-500" />
                     <span>{t("todays_live_results")}</span>
@@ -110,7 +112,7 @@ export default function Navbar() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => setResultsOpen(false)}
-                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors"
+                    className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                   >
                     <FileText className="w-4 h-4 text-red-500" />
                     <span>{t("official_pdf_sheets")}</span>
@@ -124,8 +126,8 @@ export default function Navbar() {
               href="/check"
               className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
                 pathname === "/check"
-                  ? "text-amber-600 font-bold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("nav_check")}</span>
@@ -136,8 +138,8 @@ export default function Navbar() {
               href="/scan"
               className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${
                 pathname === "/scan"
-                  ? "text-amber-600 font-bold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("nav_bulk_scan")}</span>
@@ -149,16 +151,19 @@ export default function Navbar() {
               href="/about"
               className={`text-sm font-semibold transition-colors flex items-center gap-1 ${
                 pathname === "/about"
-                  ? "text-amber-600 font-bold"
-                  : "text-slate-600 hover:text-slate-900"
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
               }`}
             >
               <span>{t("nav_about")}</span>
             </Link>
           </div>
 
-          {/* 3. Right: Clean Login Text Link + Solid Pill CTA (like Edulamp) */}
-          <div className="hidden md:flex items-center gap-5 shrink-0">
+          {/* 3. Right: Theme Toggle + Language Switch + Login + Solid Pill CTA */}
+          <div className="hidden md:flex items-center gap-3.5 lg:gap-4 shrink-0">
+            {/* Quick Dark Mode Toggle (Hidden for Agent Section) */}
+            {!isAgentRoute && <ThemeToggle variant="compact" />}
+
             {/* Discreet Language Segmented Switch */}
             <LanguageToggle variant="compact" />
 
@@ -167,47 +172,47 @@ export default function Navbar() {
               {isSuperAdmin ? (
                 <button
                   onClick={() => setPortalOpen(!portalOpen)}
-                  className="text-sm font-semibold text-slate-900 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+                  className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1.5 transition-colors"
                 >
                   <ShieldCheck className="w-4 h-4 text-amber-500" />
                   <span>Super Admin</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 </button>
               ) : isAgent ? (
                 <button
                   onClick={() => setPortalOpen(!portalOpen)}
-                  className="text-sm font-semibold text-slate-900 hover:text-amber-600 flex items-center gap-1.5 transition-colors"
+                  className="text-sm font-semibold text-slate-900 dark:text-slate-100 hover:text-amber-600 dark:hover:text-amber-400 flex items-center gap-1.5 transition-colors"
                 >
-                  <Building2 className="w-4 h-4 text-amber-600" />
+                  <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                   <span>{user?.agentCode || "Agent"}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 </button>
               ) : (
                 <button
                   onClick={() => setPortalOpen(!portalOpen)}
-                  className="text-sm font-semibold text-slate-700 hover:text-slate-900 flex items-center gap-1 transition-colors px-2 py-1"
+                  className="text-sm font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 transition-colors px-2 py-1"
                 >
                   <span>{t("nav_login")}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
                 </button>
               )}
 
               {portalOpen && (
-                <div className="absolute right-0 mt-2 w-52 bg-white border border-slate-100 rounded-2xl shadow-xl p-2 space-y-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl dark:shadow-2xl p-2 space-y-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   {isSuperAdmin ? (
                     <>
                       <Link
                         href="/super/dashboard"
                         onClick={() => setPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                       >
                         <ShieldCheck className="w-4 h-4 text-amber-500" />
                         <span>{t("nav_governance_hub")}</span>
                       </Link>
                       <Link
-                        href="/agent/dashboard"
+                        href="/agent/login"
                         onClick={() => setPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                       >
                         <Building2 className="w-4 h-4 text-slate-500" />
                         <span>{t("nav_agency_view")}</span>
@@ -218,7 +223,7 @@ export default function Navbar() {
                       <Link
                         href="/agent/dashboard"
                         onClick={() => setPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                       >
                         <Building2 className="w-4 h-4 text-amber-500" />
                         <span>{t("nav_agency_view")}</span>
@@ -229,30 +234,30 @@ export default function Navbar() {
                       <Link
                         href="/agent/login"
                         onClick={() => setPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                       >
-                        <Building2 className="w-4 h-4 text-amber-600" />
+                        <Building2 className="w-4 h-4 text-amber-600 dark:text-amber-400" />
                         <span>{t("nav_agent_login")}</span>
                       </Link>
                       <Link
                         href="/agent/login"
                         onClick={() => setPortalOpen(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors"
                       >
-                        <ShieldCheck className="w-4 h-4 text-slate-800" />
+                        <ShieldCheck className="w-4 h-4 text-slate-800 dark:text-slate-200" />
                         <span>{t("nav_super_admin_login")}</span>
                       </Link>
                     </>
                   )}
 
                   {(isSuperAdmin || isAgent || isAdmin) && (
-                    <div className="pt-1 border-t border-slate-100">
+                    <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
                       <button
                         onClick={() => {
                           setPortalOpen(false);
                           logout();
                         }}
-                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>{t("nav_sign_out")}</span>
@@ -272,12 +277,13 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Mobile Right Controls: Language & Hamburger */}
-          <div className="flex items-center gap-3 md:hidden">
+          {/* Mobile Right Controls: Theme Toggle & Language & Hamburger */}
+          <div className="flex items-center gap-2 md:hidden">
+            {!isAgentRoute && <ThemeToggle variant="compact" />}
             <LanguageToggle variant="compact" />
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-slate-700 hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               aria-label="Toggle Navigation"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -287,48 +293,48 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-b border-slate-100 shadow-xl py-4 px-4 space-y-3 absolute left-0 right-0 top-20 animate-in slide-in-from-top-2 duration-150">
+          <div className="md:hidden bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 shadow-xl py-4 px-4 space-y-3 absolute left-0 right-0 top-20 animate-in slide-in-from-top-2 duration-150">
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+              className="block px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl"
             >
               {t("nav_home")}
             </Link>
             <Link
               href="/results"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+              className="block px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl"
             >
               {t("nav_results")}
             </Link>
             <Link
               href="/check"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+              className="block px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl"
             >
               {t("nav_check")}
             </Link>
             <Link
               href="/scan"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+              className="block px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl"
             >
               {t("nav_bulk_scan")} ⚡
             </Link>
             <Link
               href="/about"
               onClick={() => setMobileMenuOpen(false)}
-              className="block px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50 rounded-xl"
+              className="block px-3 py-2 text-sm font-semibold text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/80 rounded-xl"
             >
               {t("nav_about")}
             </Link>
 
-            <div className="pt-3 border-t border-slate-100 space-y-2">
+            <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
               <Link
                 href="/agent/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block text-center py-2.5 text-sm font-bold text-slate-700 bg-slate-50 rounded-xl"
+                className="block text-center py-2.5 text-sm font-bold text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800 rounded-xl"
               >
                 {t("nav_login")}
               </Link>

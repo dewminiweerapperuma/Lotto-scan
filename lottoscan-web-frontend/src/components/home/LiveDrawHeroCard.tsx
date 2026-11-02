@@ -88,7 +88,7 @@ export default function LiveDrawHeroCard() {
               className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all text-xs flex items-center gap-1.5 ${
                 selectedIndex === idx
                   ? "bg-amber-500 text-white shadow-sm shadow-amber-500/25 scale-[1.02]"
-                  : "bg-white/80 hover:bg-white text-text-secondary border border-border-default/60 hover:text-text-primary"
+                  : "bg-white/80 hover:bg-white dark:bg-slate-800/80 dark:hover:bg-slate-800 dark:text-slate-300 dark:hover:text-white dark:border-slate-700 text-text-secondary border border-border-default/60 hover:text-text-primary"
               }`}
             >
               <span>{LOTTERY_EMOJIS[r.lottery_name] || "🎫"}</span>
@@ -99,7 +99,7 @@ export default function LiveDrawHeroCard() {
       )}
 
       {/* Main Live Card */}
-      <div className="relative bg-white border border-border-default rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.08)] border-l-4 border-l-gold text-left overflow-hidden">
+      <div className="relative bg-white dark:bg-slate-900 border border-border-default rounded-[24px] shadow-[0_12px_40px_rgba(0,0,0,0.08)] border-l-4 border-l-gold text-left overflow-hidden">
         {loading ? (
           <div className="p-8 text-center space-y-3">
             <div className="w-10 h-10 border-3 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -110,15 +110,15 @@ export default function LiveDrawHeroCard() {
             {/* Header info */}
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="flex items-center gap-2">
-                <span className="px-3 py-1 rounded-full text-xs font-display font-black tracking-wide bg-amber-50 text-amber-900 border border-amber-200 flex items-center gap-1.5">
+                <span className="px-3 py-1 rounded-full text-xs font-display font-black tracking-wide bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border border-amber-200 dark:border-amber-800/60 flex items-center gap-1.5">
                   <span>{lotteryEmoji}</span>
                   <span>{tLottery(currentDraw.lottery_name)}</span>
                 </span>
                 <span
                   className={`text-[10px] font-black px-2 py-0.5 rounded uppercase ${
                     board === "NLB"
-                      ? "bg-blue-100 text-blue-900 border border-blue-200"
-                      : "bg-amber-100 text-amber-900 border border-amber-200"
+                      ? "bg-blue-100 dark:bg-blue-950/50 text-blue-900 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                      : "bg-amber-100 dark:bg-amber-950/50 text-amber-900 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
                   }`}
                 >
                   {board}
@@ -150,7 +150,7 @@ export default function LiveDrawHeroCard() {
                     <div className="flex items-center gap-1.5 pl-1">
                       <ZodiacBall value={currentDraw.letter} size="lg" />
                       {zodiacInfo?.transliteration && (
-                        <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2 py-1 rounded-md border border-amber-200 hidden sm:inline-block">
+                        <span className="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-1 rounded-md border border-amber-200 dark:border-amber-800/80 hidden sm:inline-block">
                           {zodiacInfo.transliteration}
                         </span>
                       )}
@@ -168,7 +168,7 @@ export default function LiveDrawHeroCard() {
                 <span className="text-text-secondary font-body text-xs font-bold block uppercase tracking-wider">
                   {t("top_jackpot_prize")}
                 </span>
-                <span className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 font-mono">
+                <span className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 dark:text-amber-400 font-mono">
                   {currentDraw.top_prize || "Over Rs. 50,000,000"}
                 </span>
               </div>
@@ -188,12 +188,12 @@ export default function LiveDrawHeroCard() {
         )}
 
         {/* Live Status Bar */}
-        <div className="bg-amber-50/70 border-t border-amber-150 px-6 py-2.5 text-xs font-body font-semibold text-amber-950 flex items-center justify-between">
+        <div className="bg-amber-50/70 dark:bg-amber-950/40 border-t border-amber-150 dark:border-amber-900/40 px-6 py-2.5 text-xs font-body font-semibold text-amber-950 dark:text-amber-200 flex items-center justify-between">
           <span className="flex items-center gap-1.5">
             <span>✅</span>
             <span>Official Government Board Draw Verified</span>
           </span>
-          <span className="text-[11px] text-amber-800/80 font-mono">
+          <span className="text-[11px] text-amber-800/80 dark:text-amber-400 font-mono">
             6-Month Claim Window Active
           </span>
         </div>

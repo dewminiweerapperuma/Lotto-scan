@@ -1,12 +1,18 @@
 "use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/hooks";
 import { useLanguage } from "@/context/LanguageContext";
+import ThemeToggle from "@/components/ui/ThemeToggle";
 
 export default function Footer() {
   const { t } = useLanguage();
+  const pathname = usePathname();
+  const { isAgent } = useAuth();
+  const isAgentRoute = pathname?.startsWith("/agent") || isAgent;
 
   return (
-    <footer className="bg-[#1A1A1A] border-t border-white/10 text-white mt-20 print:hidden no-print">
+    <footer className="bg-[#1A1A1A] dark:bg-[#070B12] border-t border-white/10 dark:border-slate-800 text-white mt-20 transition-colors print:hidden no-print">
       <div className="container py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           {/* Col 1 */}
@@ -65,11 +71,14 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-white/5 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="border-t border-white/5 dark:border-slate-800/80 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-white/20 text-xs font-body">© 2026 LottoScan. All rights reserved.</p>
-          <p className="text-white/35 text-xs font-body flex items-center gap-1">
-            Built for Sri Lanka <span className="text-sm">🇱🇰</span>
-          </p>
+          <div className="flex items-center gap-4">
+            {!isAgentRoute && <ThemeToggle variant="pill" />}
+            <p className="text-white/35 text-xs font-body flex items-center gap-1">
+              Built for Sri Lanka <span className="text-sm">🇱🇰</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>

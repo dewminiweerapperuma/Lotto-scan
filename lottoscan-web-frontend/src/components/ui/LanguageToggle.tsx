@@ -39,13 +39,13 @@ export default function LanguageToggle({ className = "", variant = "pill" }: Lan
 
   if (variant === "compact") {
     return (
-      <div className={`inline-flex items-center rounded-lg bg-slate-100 p-0.5 border border-slate-200 ${className}`}>
+      <div className={`inline-flex items-center rounded-lg bg-slate-100 dark:bg-slate-800/90 p-0.5 border border-slate-200 dark:border-slate-700/80 ${className}`}>
         <button
           onClick={() => setLanguage("en")}
           className={`px-2.5 py-1 text-xs font-bold font-display rounded-md transition-all ${
             language === "en"
               ? "bg-amber-500 text-slate-950 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           EN
@@ -55,7 +55,7 @@ export default function LanguageToggle({ className = "", variant = "pill" }: Lan
           className={`px-2.5 py-1 text-xs font-bold font-display rounded-md transition-all ${
             language === "si"
               ? "bg-amber-500 text-slate-950 shadow-sm"
-              : "text-slate-600 hover:text-slate-900"
+              : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
           }`}
         >
           සිංහල
@@ -65,13 +65,13 @@ export default function LanguageToggle({ className = "", variant = "pill" }: Lan
   }
 
   return (
-    <div className={`inline-flex items-center rounded-full bg-slate-100 p-1 border border-slate-200 shadow-inner ${className}`}>
+    <div className={`inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800/90 p-1 border border-slate-200 dark:border-slate-700/80 shadow-inner ${className}`}>
       <button
         onClick={() => setLanguage("en")}
         className={`flex items-center gap-1 px-3 py-1 text-xs font-bold font-display rounded-full transition-all ${
           language === "en"
-            ? "bg-slate-900 text-amber-400 shadow-md border border-amber-400/40"
-            : "text-slate-600 hover:text-slate-900"
+            ? "bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 shadow-md border border-amber-400/40 dark:border-transparent"
+            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
         }`}
       >
         <span>🇬🇧</span>
@@ -81,8 +81,8 @@ export default function LanguageToggle({ className = "", variant = "pill" }: Lan
         onClick={() => setLanguage("si")}
         className={`flex items-center gap-1 px-3 py-1 text-xs font-bold font-display rounded-full transition-all ${
           language === "si"
-            ? "bg-slate-900 text-amber-400 shadow-md border border-amber-400/40"
-            : "text-slate-600 hover:text-slate-900"
+            ? "bg-slate-900 dark:bg-amber-500 text-amber-400 dark:text-slate-950 shadow-md border border-amber-400/40 dark:border-transparent"
+            : "text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white"
         }`}
       >
         <span>🇱🇰</span>

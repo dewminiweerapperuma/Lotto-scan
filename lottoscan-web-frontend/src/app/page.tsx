@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import Card from "@/components/ui/Card";
 import { LOTTERIES } from "@/lib/constants";
 import TicketChecker from "@/components/sections/TicketChecker";
@@ -14,9 +15,21 @@ export default function HomePage() {
   return (
     <>
       {/* Hero Section */}
-      <section className="relative bg-brand-bg pt-28 md:pt-36 pb-16 overflow-hidden">
-        {/* Background glow effects */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-gold/5 blur-[150px] pointer-events-none" />
+      <section className="relative pt-28 md:pt-36 pb-16 overflow-hidden min-h-[640px] flex items-center justify-center">
+        {/* Home page background image */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <Image
+            src="/hero-background.jpg"
+            alt="LottoScan Platform Background"
+            fill
+            priority
+            quality={95}
+            className="object-cover object-center select-none pointer-events-none opacity-45 dark:opacity-55 scale-100 transition-all duration-700"
+          />
+          {/* Gradient overlays for readability and smooth section blending */}
+          <div className="absolute inset-0 bg-gradient-to-b from-brand-bg/60 via-brand-bg/80 to-brand-bg dark:from-[#090D16]/65 dark:via-[#090D16]/80 dark:to-[#090D16] pointer-events-none" />
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-gold/10 blur-[150px] pointer-events-none" />
+        </div>
         
         <div className="container relative z-10 text-center max-w-[960px] py-6 md:py-12">
           {/* Pill Badge */}
@@ -43,13 +56,13 @@ export default function HomePage() {
             <Link href="/check" className="w-full sm:w-auto bg-gold text-white font-display font-semibold text-lg px-8 py-4 rounded-[14px] hover:bg-gold-dark transition-all active:scale-95 shadow-[0_4px_20px_rgba(232,168,0,0.35)] hover:shadow-[0_8px_32px_rgba(232,168,0,0.45)] text-center">
               {t("hero_btn_check")}
             </Link>
-            <Link href="/results" className="w-full sm:w-auto bg-white text-text-primary border border-border-default font-display font-semibold text-lg px-8 py-4 rounded-[14px] hover:border-border-hover transition-all shadow-sm hover:shadow active:scale-95 text-center">
+            <Link href="/results" className="w-full sm:w-auto bg-white dark:bg-slate-800 text-text-primary border border-border-default font-display font-semibold text-lg px-8 py-4 rounded-[14px] hover:border-border-hover transition-all shadow-sm hover:shadow active:scale-95 text-center">
               {t("hero_btn_results")}
             </Link>
           </div>
 
           {/* Stats Row - Dynamically derived from LOTTERIES and system capabilities */}
-          <div className="flex items-center justify-center gap-4 md:gap-12 mt-12 border-t border-border-default pt-8 max-w-xl mx-auto">
+          <div className="flex items-center justify-center gap-4 md:gap-12 mt-12 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-border-default rounded-2xl py-4 px-6 md:px-10 max-w-xl mx-auto shadow-sm">
             {[
               { value: `${LOTTERIES.length}`, label: t("stat_lotteries") },
               { value: "NLB & DLB", label: t("stat_boards") },
@@ -129,14 +142,14 @@ export default function HomePage() {
             <p className="text-text-secondary font-body text-base">{t("quick_check_subtitle")}</p>
           </div>
 
-          <div className="max-w-5xl mx-auto bg-white border border-border-default rounded-[24px] shadow-sm p-6 md:p-8">
+          <div className="max-w-5xl mx-auto bg-white dark:bg-slate-900 border border-border-default rounded-[24px] shadow-sm p-6 md:p-8">
             <TicketChecker />
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="section bg-white">
+      <section className="section bg-white dark:bg-slate-950">
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {[

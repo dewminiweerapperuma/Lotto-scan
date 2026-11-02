@@ -13,10 +13,10 @@ interface ButtonProps {
 
 const VARIANTS = {
   primary: "bg-gold text-white font-display font-semibold hover:bg-gold-dark shadow-md shadow-gold/30 hover:shadow-lg active:scale-95",
-  secondary: "bg-white text-text-primary border border-border-default hover:border-border-hover shadow-sm hover:shadow active:scale-95",
-  outline: "bg-white text-text-primary border border-border-default hover:border-border-hover shadow-sm hover:shadow active:scale-95",
+  secondary: "bg-white dark:bg-slate-800 text-text-primary border border-border-default hover:border-border-hover shadow-sm hover:shadow active:scale-95",
+  outline: "bg-white dark:bg-slate-800 text-text-primary border border-border-default hover:border-border-hover shadow-sm hover:shadow active:scale-95",
   ghost: "bg-transparent text-text-secondary hover:bg-brand-section hover:text-text-primary active:scale-95",
-  danger: "bg-lose-light text-lose border border-red-200 hover:bg-lose-light/80 active:scale-95",
+  danger: "bg-lose-light text-lose border border-red-200 dark:border-red-900/40 hover:bg-lose-light/80 active:scale-95",
 };
 const SIZES = { sm: "px-4 py-2 text-xs rounded-[8px]", md: "px-6 py-3 text-sm rounded-[12px]", lg: "px-8 py-4 text-base rounded-[12px]" };
 

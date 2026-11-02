@@ -6,7 +6,7 @@ export default function CheckPage() {
     <div className="min-h-screen bg-brand-bg">
       {/* Top Mode Switcher Bar */}
       <div className="pt-20 pb-2 print:hidden">
-        <div className="container max-w-4xl flex items-center justify-between gap-3 bg-white border border-border-default rounded-2xl p-2.5 shadow-sm">
+        <div className="container max-w-4xl flex items-center justify-between gap-3 bg-white dark:bg-slate-900 border border-border-default rounded-2xl p-2.5 shadow-sm">
           <div className="flex items-center gap-2">
             <span className="px-3.5 py-1.5 rounded-xl bg-gold text-white font-bold text-xs shadow-sm flex items-center gap-1.5">
               <span>🔍</span> Single Ticket Checker
@@ -20,7 +20,7 @@ export default function CheckPage() {
           </div>
           <Link
             href="/scan"
-            className="hidden sm:inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-lg transition-all"
+            className="hidden sm:inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 border border-emerald-200 dark:border-emerald-800 px-3 py-1 rounded-lg transition-all"
           >
             <span>📷 Scan Bulk Tickets →</span>
           </Link>

@@ -34,7 +34,7 @@ const generateToken = (user, agent = null) => {
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role, agencyName, agentCode, phone, boardAffiliation, location } = req.body;
+    const { email, password, role, agencyName, agentCode, nlbId, dlbId, phone, boardAffiliation, location } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Please provide email and password.' });
@@ -46,11 +46,14 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists with this email.' });
     }
 
-    // If agent, check agentCode uniqueness
-    if (role === 'agent' && agentCode) {
-      const existingAgent = await Agent.findByAgentCode(agentCode);
-      if (existingAgent) {
-        return res.status(400).json({ message: 'An agency with this Dealer Code already exists.' });
+    // If agent, check uniqueness of any provided dealer codes
+    if (role === 'agent') {
+      const codesToCheck = [agentCode, nlbId, dlbId].filter(Boolean);
+      for (const code of codesToCheck) {
+        const existingAgent = await Agent.findByAgentCode(code);
+        if (existingAgent) {
+          return res.status(400).json({ message: `An agency with Dealer Code '${code}' already exists.` });
+        }
       }
     }
 
@@ -66,11 +69,13 @@ router.post('/register', async (req, res) => {
       agentProfile = await Agent.create({
         userId: user.id,
         agencyName: agencyName || 'Authorized Lottery Agency',
-        agentCode: agentCode || `AGN-${Date.now().toString().slice(-4)}`,
+        agentCode: agentCode || nlbId || dlbId || `AGN-${Date.now().toString().slice(-4)}`,
         email: user.email,
         phone: phone || '',
         boardAffiliation: boardAffiliation || 'BOTH',
-        location: location || 'Colombo'
+        location: location || 'Colombo',
+        nlbId: nlbId || '',
+        dlbId: dlbId || ''
       });
     }
 
@@ -84,6 +89,8 @@ router.post('/register', async (req, res) => {
         role: user.role,
         agencyName: agentProfile?.agencyName,
         agentCode: agentProfile?.agentCode,
+        nlbId: agentProfile?.nlbId,
+        dlbId: agentProfile?.dlbId,
         phone: agentProfile?.phone,
         boardAffiliation: agentProfile?.boardAffiliation,
         location: agentProfile?.location
@@ -143,6 +150,8 @@ router.post('/login', async (req, res) => {
         role: user.role,
         agencyName: agentProfile?.agencyName,
         agentCode: agentProfile?.agentCode,
+        nlbId: agentProfile?.nlbId,
+        dlbId: agentProfile?.dlbId,
         phone: agentProfile?.phone,
         boardAffiliation: agentProfile?.boardAffiliation,
         location: agentProfile?.location
@@ -180,6 +189,8 @@ router.get('/me', authenticate, async (req, res) => {
         role: user.role,
         agencyName: agentProfile?.agencyName,
         agentCode: agentProfile?.agentCode,
+        nlbId: agentProfile?.nlbId,
+        dlbId: agentProfile?.dlbId,
         phone: agentProfile?.phone,
         boardAffiliation: agentProfile?.boardAffiliation,
         location: agentProfile?.location

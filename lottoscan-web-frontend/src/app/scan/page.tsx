@@ -17,6 +17,8 @@ import LaptopQrScanner from "@/components/scanner/LaptopQrScanner";
 import soundEffects from "@/lib/soundEffects";
 import SessionSlipView, { SessionSlipData, TierItem } from "@/components/scanner/SessionSlipView";
 import EmployeeProfileView from "@/components/employee/EmployeeProfileView";
+import PhysicalScannerModal from "@/components/scanner/PhysicalScannerModal";
+import { usePhysicalScanner } from "@/lib/usePhysicalScanner";
 import { useLanguage } from "@/context/LanguageContext";
 import { getLotteryName } from "@/lib/i18n";
 
@@ -105,9 +107,8 @@ export default function BulkScanPage() {
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, status: "" });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Barcode Gun Listener State
-  const [gunInputBuffer, setGunInputBuffer] = useState("");
-  const gunLastKeyTime = useRef<number>(0);
+  // Physical Scanner Modal & State
+  const [isPhysicalScannerModalOpen, setIsPhysicalScannerModalOpen] = useState(false);
 
   // Manual Entry State
   const [manualLottery, setManualLottery] = useState("Govisetha");
@@ -624,37 +625,18 @@ export default function BulkScanPage() {
     [addParsedTicketToBatch]
   );
 
-  // Barcode Gun Hardware Listener
-  useEffect(() => {
-    if (scanMode !== "gun") return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (isProcessingTicket) return;
-      const now = Date.now();
-      const timeDiff = now - gunLastKeyTime.current;
-      gunLastKeyTime.current = now;
-
-      if (e.key === "Enter") {
-        if (gunInputBuffer.length >= 4) {
-          e.preventDefault();
-          handleQrScanSuccess(gunInputBuffer);
-          setGunInputBuffer("");
-        }
-        return;
-      }
-
-      if (e.key.length === 1) {
-        if (timeDiff > 200) {
-          setGunInputBuffer(e.key);
-        } else {
-          setGunInputBuffer((prev) => prev + e.key);
-        }
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [scanMode, gunInputBuffer, handleQrScanSuccess]);
+  // Physical Hardware Scanner Machine Integration (USB HID, Bluetooth & Serial COM)
+  const {
+    settings: physicalScannerSettings,
+    lastScan: physicalLastScan,
+    isScanningBurst,
+    serialStatus: physicalSerialStatus,
+  } = usePhysicalScanner({
+    enabled: true,
+    onScan: (cleanBarcode) => {
+      handleQrScanSuccess(cleanBarcode);
+    },
+  });
 
   // Batch Image Upload Handler
   const handleBatchImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -906,7 +888,7 @@ export default function BulkScanPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/check"
-                className="text-text-secondary hover:text-text-primary transition-colors font-body text-xs font-bold border border-border-default px-2.5 py-1 rounded-lg bg-white shadow-sm"
+                className="text-text-secondary hover:text-text-primary transition-colors font-body text-xs font-bold border border-border-default px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 shadow-sm"
               >
                 {t("scan_single_checker")}
               </Link>
@@ -938,13 +920,30 @@ export default function BulkScanPage() {
               <span>{soundOn ? "🔊" : "🔇"}</span> {soundOn ? t("scan_sound_on") : t("scan_sound_off")}
             </button>
 
+            {/* Physical Scanner Machine Settings & Status Button */}
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsPhysicalScannerModalOpen(true)}
+              className="bg-white dark:bg-slate-800 border border-border-default shadow-sm text-xs font-bold flex items-center gap-1.5"
+              title="Configure physical USB barcode guns, Bluetooth scanners & serial POS machines"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>🔫 Physical Scanner</span>
+              {physicalSerialStatus === "connected" && (
+                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                  COM
+                </span>
+              )}
+            </Button>
+
             {isSessionActive ? (
               <>
                 <Button
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsSlipModalOpen(true)}
-                  className="bg-white border border-border-default shadow-sm text-xs font-bold flex items-center gap-1.5"
+                  className="bg-white dark:bg-slate-800 border border-border-default shadow-sm text-xs font-bold flex items-center gap-1.5"
                 >
                   <span>🧾</span> {t("scan_view_live_slip")}
                 </Button>
@@ -956,7 +955,7 @@ export default function BulkScanPage() {
                     setProfileTargetEmployeeId(activeEmployee?.id || null);
                     setIsProfileModalOpen(true);
                   }}
-                  className="bg-white border border-border-default shadow-sm text-xs font-bold flex items-center gap-1.5"
+                  className="bg-white dark:bg-slate-800 border border-border-default shadow-sm text-xs font-bold flex items-center gap-1.5"
                 >
                   <span>👤</span> {t("scan_employee_profile")}
                 </Button>
@@ -1109,7 +1108,7 @@ export default function BulkScanPage() {
 
         {/* ─── Metric Overview Cards ─── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+          <Card padding="sm" className="p-4 bg-white dark:bg-slate-900 border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
                 {t("scan_kpi_scanned")}
@@ -1123,7 +1122,7 @@ export default function BulkScanPage() {
             </div>
           </Card>
 
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+          <Card padding="sm" className="p-4 bg-white dark:bg-slate-900 border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
                 {t("scan_kpi_winning")}
@@ -1132,35 +1131,35 @@ export default function BulkScanPage() {
                 {summary.winnersCount} <span className="text-xs font-body font-semibold text-text-muted">({summary.winRate}%)</span>
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 rounded-full bg-win-light border border-green-200 dark:border-green-800 flex items-center justify-center text-xl shrink-0">
               🏆
             </div>
           </Card>
 
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+          <Card padding="sm" className="p-4 bg-white dark:bg-slate-900 border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
                 {t("scan_kpi_win_total")}
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-emerald-600 mt-1">
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">
                 Rs. {liveTierBreakdown.winningTotal.toLocaleString()}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-emerald-50 border border-emerald-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-xl shrink-0">
               💰
             </div>
           </Card>
 
-          <Card padding="sm" className="p-4 bg-white border border-border-default shadow-sm flex items-center justify-between">
+          <Card padding="sm" className="p-4 bg-white dark:bg-slate-900 border border-border-default shadow-sm flex items-center justify-between">
             <div>
               <p className="text-text-secondary text-[11px] font-body font-bold uppercase tracking-wider">
                 {t("scan_kpi_net_payout")}
               </p>
-              <p className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 mt-1">
+              <p className="text-2xl sm:text-3xl font-display font-extrabold text-amber-600 dark:text-amber-400 mt-1">
                 Rs. {liveTierBreakdown.netTotal.toLocaleString()}
               </p>
             </div>
-            <div className="w-11 h-11 rounded-full bg-amber-50 border border-amber-200 flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-xl shrink-0">
               🧾
             </div>
           </Card>
@@ -1207,7 +1206,7 @@ export default function BulkScanPage() {
           {/* Left: Scanner Modes & Input */}
           <div className="space-y-4">
             {/* Mode Switcher Tabs */}
-            <div className="bg-white border border-border-default p-1.5 rounded-2xl flex gap-1 shadow-sm">
+            <div className="bg-white dark:bg-slate-900 border border-border-default p-1.5 rounded-2xl flex gap-1 shadow-sm">
               <button
                 type="button"
                 onClick={() => setScanMode("camera")}
@@ -1276,7 +1275,7 @@ export default function BulkScanPage() {
 
             {/* Mode 2: Batch Upload */}
             {scanMode === "upload" && (
-              <Card className="bg-white border-2 border-dashed border-emerald-300 p-8 text-center rounded-2xl shadow-sm space-y-4">
+              <Card className="bg-white dark:bg-slate-900 border-2 border-dashed border-emerald-300 dark:border-emerald-700/60 p-8 text-center rounded-2xl shadow-sm space-y-4">
                 <input
                   type="file"
                   multiple
@@ -1332,8 +1331,8 @@ export default function BulkScanPage() {
 
             {/* Mode 3: Hardware Gun */}
             {scanMode === "gun" && (
-              <Card className="bg-white border border-border-default p-6 rounded-2xl shadow-sm text-center space-y-4">
-                <div className="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center text-2xl mx-auto">
+              <Card className="bg-white dark:bg-slate-900 border border-border-default p-6 rounded-2xl shadow-sm text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-2xl mx-auto shadow-sm">
                   🔫
                 </div>
                 <div>
@@ -1344,16 +1343,48 @@ export default function BulkScanPage() {
                     {t("scan_gun_desc")}
                   </p>
                 </div>
-                <div className="bg-emerald-50/70 border border-emerald-300 p-3 rounded-xl text-xs font-mono font-bold text-emerald-900 flex items-center justify-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                  {t("scan_gun_listening")}
+
+                <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-300 dark:border-emerald-800/80 p-3.5 rounded-xl text-xs font-mono font-bold text-emerald-900 dark:text-emerald-300 flex items-center justify-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${isScanningBurst ? "bg-amber-400 scale-125" : "bg-emerald-500 animate-ping"}`} />
+                  <span>
+                    {isScanningBurst ? "Capturing Hardware Stream..." : t("scan_gun_listening")}
+                  </span>
+                </div>
+
+                {/* Live telemetry of last hardware scan */}
+                {physicalLastScan && (
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-left text-xs font-mono space-y-1">
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-bold">
+                      <span>Last Scanned Ticket:</span>
+                      <span className="px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300">
+                        {physicalLastScan.type}
+                      </span>
+                    </div>
+                    <p className="font-bold text-slate-900 dark:text-white truncate">
+                      {physicalLastScan.cleanData}
+                    </p>
+                    <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                      ⚡ {physicalLastScan.charCount} chars in {physicalLastScan.durationMs}ms ({physicalLastScan.averageInterKeyMs}ms/key) via {physicalLastScan.source}
+                    </p>
+                  </div>
+                )}
+
+                <div className="pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPhysicalScannerModalOpen(true)}
+                    className="mx-auto text-xs font-bold border-border-default hover:border-gold"
+                  >
+                    ⚙️ Configure Scanner Machine & COM Ports
+                  </Button>
                 </div>
               </Card>
             )}
 
             {/* Mode 4: Manual Entry */}
             {scanMode === "manual" && (
-              <Card className="bg-white border border-border-default p-5 rounded-2xl shadow-sm">
+              <Card className="bg-white dark:bg-slate-900 border border-border-default p-5 rounded-2xl shadow-sm">
                 <h3 className="font-display font-extrabold text-sm text-text-primary mb-1">
                   {t("scan_manual_title")}
                 </h3>
@@ -1436,7 +1467,7 @@ export default function BulkScanPage() {
           {/* Right: Live Voucher Settlement Slip & Live Queue Tabs */}
           <div className="space-y-4">
             {/* View Switcher Tabs */}
-            <div className="flex items-center justify-between bg-white border border-border-default p-1.5 rounded-2xl shadow-sm">
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-border-default p-1.5 rounded-2xl shadow-sm">
               <div className="flex gap-1">
                 <button
                   type="button"
@@ -2033,6 +2064,15 @@ export default function BulkScanPage() {
           </div>
         </div>
       )}
+
+      {/* Hardware / Physical Scanner Diagnostics & Config Modal */}
+      <PhysicalScannerModal
+        isOpen={isPhysicalScannerModalOpen}
+        onClose={() => setIsPhysicalScannerModalOpen(false)}
+        onTestScan={(code) => {
+          handleQrScanSuccess(code);
+        }}
+      />
     </div>
   );
 }

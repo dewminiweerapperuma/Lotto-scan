@@ -19,7 +19,7 @@ export default function Input({ value, onChange, placeholder, type = "text", lab
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={`w-full bg-white border border-border-default rounded-[10px] px-4 py-3 text-text-primary font-body text-sm placeholder-text-muted focus:outline-none focus:border-gold focus:ring-4 focus:ring-gold/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${
+        className={`w-full bg-white dark:bg-slate-900 border border-border-default rounded-[10px] px-4 py-3 text-text-primary font-body text-sm placeholder-text-muted focus:outline-none focus:border-gold focus:ring-4 focus:ring-gold/15 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200 shadow-sm ${
           error ? "border-lose focus:border-lose focus:ring-lose/15" : ""
         } ${className}`}
       />

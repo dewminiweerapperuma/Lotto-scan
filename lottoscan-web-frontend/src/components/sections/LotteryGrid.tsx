@@ -93,7 +93,7 @@ export default function LotteryGrid() {
 
         {loading && (
           <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-border-default shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-full border border-border-default shadow-sm">
               <span className="w-4 h-4 border-2 border-gold border-t-transparent rounded-full animate-spin" />
               <span className="text-text-secondary text-sm font-body">{t("grid_loading")}</span>
             </div>

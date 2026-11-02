@@ -18,8 +18,6 @@ import {
   X,
   ExternalLink
 } from "lucide-react";
-import { useLanguage } from "@/context/LanguageContext";
-import LanguageToggle from "@/components/ui/LanguageToggle";
 
 export default function SuperAdminLayout({
   children,
@@ -29,7 +27,6 @@ export default function SuperAdminLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { user, isSuperAdmin, logout, loading } = useAuth();
-  const { t } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -53,34 +50,34 @@ export default function SuperAdminLayout({
 
   const navItems = [
     {
-      label: t("super_nav_dashboard"),
+      label: "National Dashboard",
       href: "/super/dashboard",
       icon: LayoutDashboard,
       badge: "LIVE",
     },
     {
-      label: t("super_nav_agents"),
+      label: "Area Agencies",
       href: "/super/agents",
       icon: Building2,
     },
     {
-      label: t("super_nav_draws"),
+      label: "Draws & Overrides",
       href: "/super/draws",
       icon: Trophy,
     },
     {
-      label: t("super_nav_scrapers"),
+      label: "Crawler & Scrapers",
       href: "/super/scrapers",
       icon: RefreshCw,
     },
     {
-      label: t("super_nav_claims"),
+      label: "Duplicate Claims",
       href: "/super/claims",
       icon: ShieldAlert,
       badge: "SECURITY",
     },
     {
-      label: t("super_nav_logs"),
+      label: "Audit Logs",
       href: "/super/logs",
       icon: History,
     },
@@ -101,7 +98,6 @@ export default function SuperAdminLayout({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <LanguageToggle variant="dark" />
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             className="p-2 rounded-lg bg-slate-800/60 text-slate-300 hover:text-white border border-slate-700/50"
@@ -129,15 +125,9 @@ export default function SuperAdminLayout({
                   LottoScan
                 </h2>
                 <p className="text-[11px] font-mono text-amber-400/90 tracking-wider uppercase mt-1">
-                  {t("super_governance_hub")}
+                  GOVERNANCE HUB
                 </p>
               </div>
-            </div>
-            <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950/60 border border-slate-800">
-              <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400">
-                Language / භාෂාව
-              </span>
-              <LanguageToggle variant="dark" />
             </div>
             <div className="p-2.5 rounded-xl bg-amber-500/5 border border-amber-500/20 text-[11px] text-amber-300/80 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
@@ -151,7 +141,7 @@ export default function SuperAdminLayout({
           {/* Navigation Links */}
           <nav className="space-y-1">
             <p className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400 px-3 pb-2">
-              {t("super_subsystems")}
+              SUBSYSTEMS
             </p>
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -217,7 +207,7 @@ export default function SuperAdminLayout({
 
           <div className="grid grid-cols-2 gap-2 pt-1">
             <Link
-              href="/agent/dashboard"
+              href="/agent/login"
               className="flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-200 py-2 px-2 rounded-lg bg-slate-800/40 hover:bg-slate-800/80 border border-slate-800 transition-colors"
             >
               <span>Agency View</span>

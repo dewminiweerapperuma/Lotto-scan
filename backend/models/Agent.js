@@ -10,15 +10,17 @@ class Agent {
     phone = '',
     boardAffiliation = 'BOTH',
     location = 'Colombo',
-    status = 'active'
+    status = 'active',
+    nlbId = '',
+    dlbId = ''
   }) {
     const id = uuidv4();
     const createdAt = new Date().toISOString();
-    const code = (agentCode || `AGN-${Date.now().toString().slice(-4)}`).toUpperCase().trim();
+    const code = (agentCode || nlbId || dlbId || `AGN-${Date.now().toString().slice(-4)}`).toUpperCase().trim();
 
     await db.query(
-      `INSERT INTO agents (id, user_id, agency_name, agent_code, email, phone, board_affiliation, location, status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      `INSERT INTO agents (id, user_id, agency_name, agent_code, email, phone, board_affiliation, location, status, created_at, nlb_id, dlb_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [
         id,
         userId,
@@ -29,7 +31,9 @@ class Agent {
         boardAffiliation.toUpperCase().trim(),
         location.trim(),
         status,
-        createdAt
+        createdAt,
+        (nlbId || '').trim().toUpperCase(),
+        (dlbId || '').trim().toUpperCase()
       ]
     );
 
@@ -43,7 +47,9 @@ class Agent {
       boardAffiliation: boardAffiliation.toUpperCase().trim(),
       location: location.trim(),
       status,
-      createdAt
+      createdAt,
+      nlbId: (nlbId || '').trim().toUpperCase(),
+      dlbId: (dlbId || '').trim().toUpperCase()
     };
   }
 
@@ -62,14 +68,16 @@ class Agent {
       boardAffiliation: r.board_affiliation,
       location: r.location,
       status: r.status,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      nlbId: r.nlb_id || '',
+      dlbId: r.dlb_id || ''
     };
   }
 
   static async findByAgentCode(agentCode) {
     if (!agentCode) return null;
     const res = await db.query(
-      'SELECT * FROM agents WHERE upper(agent_code) = upper($1) LIMIT 1',
+      'SELECT * FROM agents WHERE upper(agent_code) = upper($1) OR upper(nlb_id) = upper($1) OR upper(dlb_id) = upper($1) LIMIT 1',
       [agentCode.trim()]
     );
     if (res.rows.length === 0) return null;
@@ -84,7 +92,9 @@ class Agent {
       boardAffiliation: r.board_affiliation,
       location: r.location,
       status: r.status,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      nlbId: r.nlb_id || '',
+      dlbId: r.dlb_id || ''
     };
   }
 
@@ -106,7 +116,9 @@ class Agent {
       boardAffiliation: r.board_affiliation,
       location: r.location,
       status: r.status,
-      createdAt: r.created_at
+      createdAt: r.created_at,
+      nlbId: r.nlb_id || '',
+      dlbId: r.dlb_id || ''
     };
   }
 

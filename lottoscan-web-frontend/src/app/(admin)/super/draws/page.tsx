@@ -50,9 +50,10 @@ export default function SuperAdminDrawsPage() {
     try {
       setLoading(true);
       const res = await lottery.getLivePrizes();
-      if (Array.isArray(res.data)) {
-        setDraws(res.data);
-      }
+      const list = Array.isArray(res.data)
+        ? res.data
+        : (res.data?.prizes || res.data?.data || []);
+      setDraws(list);
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to load live draws.");
     } finally {

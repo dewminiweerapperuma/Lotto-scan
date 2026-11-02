@@ -69,6 +69,56 @@ class SoundEffectsService {
   }
 
   /**
+   * HARDWARE SCANNER BEEP: Authentic commercial POS / barcode gun chirp.
+   * High-pitch 2700Hz crisp chirp (45ms duration) simulating Zebra/Honeywell scanner beeper.
+   */
+  public playScannerBeep() {
+    if (!this.soundEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(2700, now);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } catch {}
+  }
+
+  /**
+   * HARDWARE SCANNER ERROR: Low-pitch dual buzz for unreadable or rejected barcode scan.
+   */
+  public playScannerErrorBeep() {
+    if (!this.soundEnabled) return;
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      [0, 0.08].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(200, now + offset);
+        gain.gain.setValueAtTime(0.25, now + offset);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + offset + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + offset);
+        osc.stop(now + offset + 0.06);
+      });
+    } catch {}
+  }
+
+  /**
    * ALREADY SCANNED SOUND: When ticket has already been scanned in the bulk scanning session.
    * Plays a distinct dual-tone rejection buzzer and speaks "Already scanned".
    */

@@ -14,6 +14,8 @@ import { scanTicketImage, parseTicketText, isSerialOrVerificationData } from "@/
 import { parseLotteryQR } from "@/lib/qrParser";
 import LaptopQrScanner from "@/components/scanner/LaptopQrScanner";
 import soundEffects from "@/lib/soundEffects";
+import PhysicalScannerModal from "@/components/scanner/PhysicalScannerModal";
+import { usePhysicalScanner } from "@/lib/usePhysicalScanner";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) {
@@ -29,7 +31,17 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
   const [error, setError] = useState("");
   const [result, setResult] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
+  const [isPhysicalScannerModalOpen, setIsPhysicalScannerModalOpen] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Physical Barcode Scanner Gun / COM Port Integration
+  usePhysicalScanner({
+    enabled: true,
+    beepOnScan: true,
+    onScan: (scannedText) => {
+      handleCameraScanSuccess(scannedText);
+    },
+  });
 
   const handleCameraScanSuccess = useCallback((scannedText: string) => {
     const raw = scannedText?.trim();
@@ -518,14 +530,26 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               <p className="text-gold-dark font-body font-semibold text-sm">{t("scan_ticket_heading")}</p>
               <p className="text-text-secondary text-xs font-body mt-1">{t("scan_ticket_subheading")}</p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
-              <Button onClick={() => setShowCamera(true)} size="sm" className="flex items-center justify-center gap-2">
+            <div className="flex flex-col sm:flex-row gap-2.5 justify-center pt-2">
+              <Button onClick={() => setShowCamera(true)} size="sm" className="flex items-center justify-center gap-1.5">
                 <span>📷</span> {t("open_camera_scanner")}
               </Button>
-              <Button onClick={() => fileInputRef.current?.click()} variant="secondary" size="sm" className="flex items-center justify-center gap-2">
+              <Button onClick={() => fileInputRef.current?.click()} variant="secondary" size="sm" className="flex items-center justify-center gap-1.5">
                 <span>📁</span> {t("upload_ticket_photo")}
               </Button>
+              <Button
+                onClick={() => setIsPhysicalScannerModalOpen(true)}
+                variant="secondary"
+                size="sm"
+                className="flex items-center justify-center gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+              >
+                <span>🔫</span> Scanner Machine
+              </Button>
             </div>
+            <p className="text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold flex items-center justify-center gap-1.5 pt-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Physical USB / Bluetooth / COM Scanner Ready — Pull trigger anytime
+            </p>
           </div>
         )}
       </div>
@@ -763,7 +787,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
 
     return (
       <div className="space-y-6 animate-slide-up">
-        <div className="bg-white border border-border-default rounded-[24px] p-6 md:p-8 border-l-4 border-l-lose shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-border-default rounded-[24px] p-6 md:p-8 border-l-4 border-l-lose shadow-sm">
           <div className="text-center space-y-3">
             <div className="text-5xl">😔</div>
             <h3 className="text-2xl font-display font-extrabold text-text-secondary leading-tight">
@@ -872,7 +896,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
               <div key={i} className="flex items-center gap-2">
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold ${
-                    i === 0 ? "bg-gold text-white" : "bg-white text-text-muted border border-border-default"
+                    i === 0 ? "bg-gold text-white" : "bg-white dark:bg-slate-800 text-text-muted border border-border-default"
                   }`}
                 >
                   {i + 1}
@@ -902,7 +926,7 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
         </div>
 
         {/* Right Column (45%) */}
-        <div className="bg-white p-6 md:p-12 lg:pr-[max(24px,calc((100vw-1440px)/2+24px))] lg:pl-16 lg:py-16 border-t lg:border-t-0 lg:border-l border-border-default flex flex-col justify-center overflow-y-auto lg:h-[calc(100vh-64px)]">
+        <div className="bg-white dark:bg-slate-900 p-6 md:p-12 lg:pr-[max(24px,calc((100vw-1440px)/2+24px))] lg:pl-16 lg:py-16 border-t lg:border-t-0 lg:border-l border-border-default flex flex-col justify-center overflow-y-auto lg:h-[calc(100vh-64px)]">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16">
               <div className="w-12 h-12 border-4 border-gold border-t-transparent rounded-full animate-spin mb-4" />
@@ -912,6 +936,12 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
             renderResult()
           )}
         </div>
+
+        <PhysicalScannerModal
+          isOpen={isPhysicalScannerModalOpen}
+          onClose={() => setIsPhysicalScannerModalOpen(false)}
+          onTestScan={handleCameraScanSuccess}
+        />
       </div>
     );
   }
@@ -944,6 +974,12 @@ export default function TicketChecker({ isFullPage }: { isFullPage?: boolean }) 
           renderResult()
         )}
       </div>
+
+      <PhysicalScannerModal
+        isOpen={isPhysicalScannerModalOpen}
+        onClose={() => setIsPhysicalScannerModalOpen(false)}
+        onTestScan={handleCameraScanSuccess}
+      />
     </div>
   );
 }

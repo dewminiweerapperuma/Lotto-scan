@@ -24,6 +24,33 @@
 
   --border-default: #E5E7EB;
   --border-hover: #D1D5DB;
+  --input-bg: #FFFFFF;
+}
+
+.dark {
+  --gold: #F5C518;
+  --gold-light: rgba(245, 197, 24, 0.12);
+  --gold-dark: #FBBF24;
+  --gold-border: rgba(245, 197, 24, 0.32);
+  --win: #22C55E;
+  --win-light: rgba(34, 197, 94, 0.16);
+  --lose: #EF4444;
+  --lose-light: rgba(239, 68, 68, 0.16);
+
+  --bg-primary: #090D16;
+  --bg-secondary: #0F172A;
+  --bg-card: #131D31;
+  --bg-card-hover: #1A2742;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-faint: #334155;
+
+  --border-default: #1E293B;
+  --border-hover: #334155;
+  --input-bg: #0F172A;
+  color-scheme: dark;
 }
 
 * {
@@ -133,7 +160,7 @@ body::before {
 }
 .card-gold {
   border-color: var(--gold-border);
-  background: #FFFDF7;
+  background: var(--gold-light);
   box-shadow: 0 4px 20px rgba(232, 168, 0, 0.08);
 }
 .card-green {
@@ -143,7 +170,7 @@ body::before {
 
 /* Inputs styling */
 .input-dark {
-  background: #FFFFFF;
+  background: var(--input-bg);
   border: 1px solid var(--border-default);
   border-radius: 10px;
   color: var(--text-primary);
@@ -165,7 +192,7 @@ body::before {
 .number-input {
   min-width: 48px;
   height: 72px;
-  background: #FFFFFF;
+  background: var(--input-bg);
   border: 1.5px solid var(--border-default);
   border-radius: 12px;
   color: var(--text-primary);
@@ -181,6 +208,32 @@ body::before {
   border-color: var(--gold);
   box-shadow: 0 0 0 3px rgba(232, 168, 0, 0.15);
   background: var(--bg-card-hover);
+}
+
+/* Dark theme specific utility reinforcements */
+.dark .bg-brand-bg {
+  background-color: var(--bg-primary) !important;
+}
+.dark .bg-brand-section {
+  background-color: var(--bg-secondary) !important;
+}
+.dark .bg-brand-card {
+  background-color: var(--bg-card) !important;
+}
+.dark .text-text-primary {
+  color: var(--text-primary) !important;
+}
+.dark .text-text-secondary {
+  color: var(--text-secondary) !important;
+}
+.dark .text-text-muted {
+  color: var(--text-muted) !important;
+}
+.dark .border-border-default {
+  border-color: var(--border-default) !important;
+}
+.dark .border-border-hover {
+  border-color: var(--border-hover) !important;
 }
 
 /* Scrollbar */
